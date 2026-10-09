@@ -1,0 +1,27 @@
+version: '3'
+
+vars:
+  IMAGE_NAME: lucytech-url-analyzer
+  DOCKERFILE: Dockerfile
+
+tasks:
+  default:
+    cmds:
+      - task: run
+
+  build:
+    desc: Build the Docker image
+    cmds:
+      - docker build -t {{.IMAGE_NAME}} -f {{.DOCKERFILE}} .
+
+  run:
+    desc: Build and run the Go application inside Docker (cleans container on exit)
+    deps: [build]
+    cmds:
+      - docker run --rm {{.IMAGE_NAME}}
+
+  clean:
+    desc: Remove the Docker image
+    cmds:
+      - docker rmi {{.IMAGE_NAME}} --force
+    ignore_error: true

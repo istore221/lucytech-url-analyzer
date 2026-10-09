@@ -1,0 +1,35 @@
+# Version control
+.git
+.gitignore
+
+# Build artifacts and binaries
+bin/
+*.out
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Docker artifacts
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# IDEs and local editor files
+.idea/
+.vscode/
+*.swp
+*~
+
+# Test & coverage reports
+*.cover
+*.html
+coverage.out
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# Environment and local secrets
+.env
+*.local

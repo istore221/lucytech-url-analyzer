@@ -23,9 +23,9 @@ type AnalysisResult struct {
 func main() {
 	urls := []string{
 		//"https://www.york.ac.uk/teaching/cws/wws/webpage1.html",
-		//"https://toscrape.com/",
+		"https://toscrape.com/",
 		//"https://www.scrapethissite.com/pages/",
-		"https://www.scrapethissite.com/login/",
+		//"https://www.scrapethissite.com/login/",
 		//"https://golang.org",
 		//"https://github.com",
 		//"https://example.com",
@@ -155,7 +155,7 @@ func printResult(res AnalysisResult) {
 	}
 	fmt.Println()
 
-	fmt.Printf("   [Dead Links - %d]\n", len(a.InaccessibleLinks))
+	fmt.Printf("   [Inaccessible Links - %d]\n", len(a.InaccessibleLinks))
 	if len(a.InaccessibleLinks) == 0 {
 		fmt.Println("     └─ (none)")
 	} else {
