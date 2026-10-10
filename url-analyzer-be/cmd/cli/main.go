@@ -11,7 +11,7 @@ import (
 	"syscall"
 	"time"
 
-	analyzer "github.com/istore221/lucytech-url-analyzer"
+	"github.com/istore221/lucytech-url-analyzer/internal/analyzer"
 )
 
 type AnalysisResult struct {

@@ -6,6 +6,12 @@ DOCKERFILE := Dockerfile
 
 all: run
 
+quality:
+	@echo "==> Running tests and generating coverage report..."
+	@go test -v -coverprofile=coverage.out ./...
+	@go tool cover -html=coverage.out -o coverage.html
+	@echo "==> Coverage Report per File:"
+	@go tool cover -func=coverage.out
 
 run: build
 	@echo "==> Running application in Docker..."

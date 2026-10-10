@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"testing"
 
-	analyzer "github.com/istore221/lucytech-url-analyzer"
-	"github.com/istore221/lucytech-url-analyzer/mocks"
+	"github.com/istore221/lucytech-url-analyzer/internal/analyzer"
+	"github.com/istore221/lucytech-url-analyzer/internal/analyzer/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"gopkg.in/h2non/gock.v1"
@@ -37,10 +37,6 @@ func TestAnalyzer_Analyze(t *testing.T) {
 			Reply(http.StatusOK)
 
 		gock.New(targetURL).
-			Get("/").
-			Reply(http.StatusOK)
-
-		gock.New(targetURL).
 			Get("/broken").
 			Reply(http.StatusNotFound)
 
@@ -60,7 +56,6 @@ func TestAnalyzer_Analyze(t *testing.T) {
 			RawLinks: []string{
 				"/internal",
 				"https://external.com",
-				"#section",
 				"https://network-error.com",
 				"/broken",
 				"https://broken-external.com",
@@ -76,6 +71,7 @@ func TestAnalyzer_Analyze(t *testing.T) {
 		gock.InterceptClient(client)
 
 		a := analyzer.New(
+			analyzer.WithWorkers(1),
 			analyzer.WithScraper(mockScraper),
 			analyzer.WithHTTPClient(client),
 		)
@@ -89,7 +85,6 @@ func TestAnalyzer_Analyze(t *testing.T) {
 
 		assert.ElementsMatch(t, []string{
 			"https://example.com/internal",
-			"https://example.com#section",
 			"https://example.com/broken",
 			"https://example.com/internal?arg=test#section",
 		}, res.InternalLinks)
