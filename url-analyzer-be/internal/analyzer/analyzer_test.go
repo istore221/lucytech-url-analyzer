@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/istore221/lucytech-url-analyzer/internal/analyzer"
 	"github.com/istore221/lucytech-url-analyzer/internal/analyzer/mocks"
@@ -300,5 +301,45 @@ func TestAnalyzer_Analyze(t *testing.T) {
 		assert.Empty(t, res.InternalLinks)
 		assert.Empty(t, res.ExternalLinks)
 		assert.Empty(t, res.InaccessibleLinks)
+	})
+
+	t.Run("returns context error when canceled during worker processing", func(t *testing.T) {
+		defer gock.Off()
+
+		gock.New(targetURL).
+			Get("/").
+			Reply(http.StatusOK)
+
+		mockScraper := mocks.NewMockScraper(t)
+		mockScraper.On("Scrape", mock.AnythingOfType("analyzer.ScrapeRequest")).
+			Return(&analyzer.ScrapeData{
+				RawLinks: []string{"/slow-link-1", "/slow-link-2"},
+			}, nil)
+
+		client := &http.Client{Transport: &http.Transport{}}
+		gock.InterceptClient(client)
+
+		a := analyzer.New(
+			analyzer.WithScraper(mockScraper),
+			analyzer.WithHTTPClient(client),
+			analyzer.WithWorkers(1),
+		)
+
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Millisecond)
+		defer cancel()
+
+		gock.New(targetURL).
+			Get("/slow-link-1").
+			Map(func(r *http.Request) *http.Request {
+				time.Sleep(50 * time.Millisecond)
+				return r
+			}).
+			Reply(http.StatusOK)
+
+		res, err := a.Analyze(ctx, targetURL)
+
+		assert.Error(t, err)
+		assert.Nil(t, res)
+		assert.ErrorIs(t, err, context.DeadlineExceeded)
 	})
 }

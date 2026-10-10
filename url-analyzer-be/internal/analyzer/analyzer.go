@@ -42,7 +42,6 @@ func New(opts ...Option) *Analyzer {
 			Transport: t,
 		},
 		ignoredSchemes: map[string]bool{
-
 			"javascript": true,
 			"vbscript":   true,
 			"data":       true,
@@ -85,7 +84,6 @@ func (a *Analyzer) Analyze(ctx context.Context, targetURL string) (*PageAnalysis
 
 	resp, err := a.client.Do(req)
 	if err != nil {
-
 		if ctx.Err() != nil {
 			return nil, ctx.Err()
 		}
@@ -138,7 +136,10 @@ func (a *Analyzer) Analyze(ctx context.Context, targetURL string) (*PageAnalysis
 		}
 	}
 
-	inaccessibleLinks := a.getInaccessibleLinks(ctx, allValidatableLinks)
+	inaccessibleLinks, err := a.getInaccessibleLinks(ctx, allValidatableLinks)
+	if err != nil {
+		return nil, err
+	}
 
 	return &PageAnalysis{
 		URL:               parsedTarget.String(),
@@ -152,9 +153,9 @@ func (a *Analyzer) Analyze(ctx context.Context, targetURL string) (*PageAnalysis
 	}, nil
 }
 
-func (a *Analyzer) getInaccessibleLinks(ctx context.Context, links []string) []string {
+func (a *Analyzer) getInaccessibleLinks(ctx context.Context, links []string) ([]string, error) {
 	if len(links) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	jobs := make(chan string, len(links))
@@ -172,34 +173,25 @@ func (a *Analyzer) getInaccessibleLinks(ctx context.Context, links []string) []s
 		go func() {
 			defer wg.Done()
 
-			for {
-				select {
-				case <-ctx.Done():
-					return
-				case link, ok := <-jobs:
-					if !ok {
-						return
-					}
+			for link := range jobs {
 
-					if a.isLinkInaccessible(ctx, link) {
-						select {
-						case <-ctx.Done():
-							return
-						case results <- link:
-						}
+				if ctx.Err() != nil {
+					return
+				}
+
+				if a.isLinkInaccessible(ctx, link) {
+					select {
+					case <-ctx.Done():
+						return
+					case results <- link:
 					}
 				}
 			}
 		}()
 	}
 
-enqueueLoop:
 	for _, link := range links {
-		select {
-		case <-ctx.Done():
-			break enqueueLoop
-		case jobs <- link:
-		}
+		jobs <- link
 	}
 	close(jobs)
 
@@ -209,17 +201,15 @@ enqueueLoop:
 	}()
 
 	var inaccessible []string
-	for {
-		select {
-		case <-ctx.Done():
-			return inaccessible
-		case brokenLink, ok := <-results:
-			if !ok {
-				return inaccessible
-			}
-			inaccessible = append(inaccessible, brokenLink)
-		}
+	for brokenLink := range results {
+		inaccessible = append(inaccessible, brokenLink)
 	}
+
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+
+	return inaccessible, nil
 }
 
 func (a *Analyzer) isLinkInaccessible(ctx context.Context, link string) bool {
