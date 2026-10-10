@@ -55,11 +55,13 @@ func TestAnalyzer_Analyze(t *testing.T) {
 			Headings:    map[string]int{"h1": 1},
 			RawLinks: []string{
 				"/internal",
-				"https://external.com",
+				"   https://external.com    ",
 				"https://network-error.com",
 				"/broken",
 				"https://broken-external.com",
 				"/internal?arg=test#section",
+				"javascript:alert(1)",
+				"DATA:image/png;base64,123",
 			},
 			HasLoginForm: false,
 		}
@@ -100,5 +102,203 @@ func TestAnalyzer_Analyze(t *testing.T) {
 			"https://broken-external.com",
 			"https://network-error.com",
 		}, res.InaccessibleLinks)
+	})
+
+	t.Run("it returns success for page analysis and detects with no links in the page", func(t *testing.T) {
+		defer gock.Off()
+
+		mockScraper := mocks.NewMockScraper(t)
+		expectedData := &analyzer.ScrapeData{
+			HTMLVersion:  "HTML5",
+			Title:        "Example Page",
+			Headings:     map[string]int{"h1": 1},
+			RawLinks:     []string{},
+			HasLoginForm: false,
+		}
+
+		mockScraper.On("Scrape", mock.AnythingOfType("analyzer.ScrapeRequest")).
+			Return(expectedData, nil)
+
+		client := &http.Client{Transport: &http.Transport{}}
+		gock.InterceptClient(client)
+
+		a := analyzer.New(
+			analyzer.WithWorkers(1),
+			analyzer.WithScraper(mockScraper),
+			analyzer.WithHTTPClient(client),
+		)
+
+		res, err := a.Analyze(context.Background(), targetURL)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "https://example.com", res.URL)
+		assert.Equal(t, "HTML5", res.HTMLVersion)
+		assert.Equal(t, "Example Page", res.Title)
+
+		assert.Empty(t, res.InternalLinks)
+		assert.Empty(t, res.ExternalLinks)
+		assert.Empty(t, res.InaccessibleLinks)
+
+	})
+
+	t.Run("automatically prefixes target URL without scheme with https", func(t *testing.T) {
+		defer gock.Off()
+
+		gock.New("https://noscheme.com").
+			Get("/").
+			Reply(http.StatusOK)
+
+		mockScraper := mocks.NewMockScraper(t)
+		mockScraper.On("Scrape", mock.AnythingOfType("analyzer.ScrapeRequest")).
+			Return(&analyzer.ScrapeData{}, nil)
+
+		client := &http.Client{Transport: &http.Transport{}}
+		gock.InterceptClient(client)
+
+		a := analyzer.New(
+			analyzer.WithWorkers(1),
+			analyzer.WithScraper(mockScraper),
+			analyzer.WithHTTPClient(client),
+		)
+
+		res, err := a.Analyze(context.Background(), "noscheme.com")
+
+		assert.NoError(t, err)
+		assert.Equal(t, "https://noscheme.com", res.URL)
+	})
+
+	t.Run("returns error on invalid URL", func(t *testing.T) {
+		a := analyzer.New()
+		res, err := a.Analyze(context.Background(), "http://192.168.0.%31/")
+
+		assert.Error(t, err)
+		assert.Nil(t, res)
+		assert.ErrorIs(t, err, analyzer.ErrInvalidURL)
+	})
+
+	t.Run("returns error when initial HTTP request fails", func(t *testing.T) {
+		defer gock.Off()
+
+		gock.New("https://unreachable.com").
+			Get("/").
+			ReplyError(errors.New("dial tcp: lookup failed"))
+
+		client := &http.Client{Transport: &http.Transport{}}
+		gock.InterceptClient(client)
+
+		a := analyzer.New(
+			analyzer.WithWorkers(1),
+			analyzer.WithHTTPClient(client),
+		)
+
+		res, err := a.Analyze(context.Background(), "https://unreachable.com")
+
+		assert.Error(t, err)
+		assert.Nil(t, res)
+
+		var httpErr *analyzer.HTTPError
+		assert.True(t, errors.As(err, &httpErr))
+		assert.Equal(t, 0, httpErr.StatusCode)
+	})
+
+	t.Run("returns HTTPError on non-2xx status code", func(t *testing.T) {
+		defer gock.Off()
+
+		gock.New(targetURL).
+			Get("/").
+			Reply(http.StatusInternalServerError)
+
+		client := &http.Client{Transport: &http.Transport{}}
+		gock.InterceptClient(client)
+
+		a := analyzer.New(
+			analyzer.WithWorkers(1),
+			analyzer.WithHTTPClient(client),
+		)
+
+		res, err := a.Analyze(context.Background(), targetURL)
+
+		assert.Error(t, err)
+		assert.Nil(t, res)
+
+		var httpErr *analyzer.HTTPError
+		assert.True(t, errors.As(err, &httpErr))
+		assert.Equal(t, http.StatusInternalServerError, httpErr.StatusCode)
+	})
+
+	t.Run("returns error when scraper fails", func(t *testing.T) {
+		defer gock.Off()
+
+		gock.New(targetURL).
+			Get("/").
+			Reply(http.StatusOK)
+
+		scrapeErr := errors.New("malformed html")
+		mockScraper := mocks.NewMockScraper(t)
+		mockScraper.On("Scrape", mock.AnythingOfType("analyzer.ScrapeRequest")).
+			Return(nil, scrapeErr)
+
+		client := &http.Client{Transport: &http.Transport{}}
+		gock.InterceptClient(client)
+
+		a := analyzer.New(
+			analyzer.WithWorkers(1),
+			analyzer.WithScraper(mockScraper),
+			analyzer.WithHTTPClient(client),
+		)
+
+		res, err := a.Analyze(context.Background(), targetURL)
+
+		assert.Error(t, err)
+		assert.Nil(t, res)
+		assert.ErrorIs(t, err, analyzer.ErrScrape)
+	})
+
+	t.Run("returns context error when canceled prior to execution", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+
+		a := analyzer.New(
+			analyzer.WithWorkers(1),
+		)
+		res, err := a.Analyze(ctx, targetURL)
+
+		assert.Error(t, err)
+		assert.Nil(t, res)
+		assert.ErrorIs(t, err, context.Canceled)
+	})
+
+	t.Run("ignores unsupported URL schemes", func(t *testing.T) {
+		defer gock.Off()
+
+		gock.New(targetURL).
+			Get("/").
+			Reply(http.StatusOK)
+
+		mockScraper := mocks.NewMockScraper(t)
+		mockScraper.On("Scrape", mock.AnythingOfType("analyzer.ScrapeRequest")).
+			Return(&analyzer.ScrapeData{
+				RawLinks: []string{
+					"mailto:user@example.com",
+					"tel:+1234567890",
+					"javascript:void(0)",
+					"file:///etc/passwd",
+				},
+			}, nil)
+
+		client := &http.Client{Transport: &http.Transport{}}
+		gock.InterceptClient(client)
+
+		a := analyzer.New(
+			analyzer.WithScraper(mockScraper),
+			analyzer.WithHTTPClient(client),
+		)
+
+		res, err := a.Analyze(context.Background(), targetURL)
+
+		assert.NoError(t, err)
+		assert.Empty(t, res.InternalLinks)
+		assert.Empty(t, res.ExternalLinks)
+		assert.Empty(t, res.InaccessibleLinks)
 	})
 }

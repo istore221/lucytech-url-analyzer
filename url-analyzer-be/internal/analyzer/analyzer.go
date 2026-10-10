@@ -42,8 +42,19 @@ func New(opts ...Option) *Analyzer {
 			Transport: t,
 		},
 		ignoredSchemes: map[string]bool{
-			"mailto":     true,
+
 			"javascript": true,
+			"vbscript":   true,
+			"data":       true,
+			"blob":       true,
+
+			"mailto": true,
+			"tel":    true,
+			"sms":    true,
+			"callto": true,
+
+			"file":   true,
+			"intent": true,
 		},
 	}
 
@@ -112,7 +123,7 @@ func (a *Analyzer) Analyze(ctx context.Context, targetURL string) (*PageAnalysis
 
 	var internalLinks, externalLinks, allValidatableLinks []string
 	for _, rawLink := range scrapeData.RawLinks {
-		resolvedURL, resolveErr := parsedTarget.Parse(rawLink)
+		resolvedURL, resolveErr := parsedTarget.Parse(strings.TrimSpace(rawLink))
 		if resolveErr != nil || a.ignoredSchemes[strings.ToLower(resolvedURL.Scheme)] {
 			continue
 		}

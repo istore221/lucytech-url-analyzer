@@ -1,6 +1,6 @@
-.PHONY: compose-up compose-down compose-build compose-logs compose-ps
+.PHONY: run stop build logs ps
 
-compose-up:
+run:
 	@echo "==> Starting containers..."
 	docker compose up --build -d
 	@echo ""
@@ -10,16 +10,16 @@ compose-up:
 	@echo "=========================================="
 	@echo ""
 
-compose-down:
+stop:
 	@echo "==> Stopping containers..."
 	docker compose down
 
-compose-build:
+build:
 	@echo "==> Building container images..."
 	docker compose build
 
-compose-logs:
+logs:
 	docker compose logs -f
 
-compose-ps:
+ps:
 	docker compose ps

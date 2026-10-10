@@ -33,6 +33,10 @@ func main() {
 		//"https://this-will-fail-123.com",
 	}
 
+	if len(os.Args) > 1 {
+		urls = append(urls, os.Args[1:]...)
+	}
+
 	rootCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 

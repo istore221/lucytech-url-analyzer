@@ -9,11 +9,19 @@ all: run
 quality:
 	@echo "==> Running linter..."
 	@golangci-lint run ./...
-	@echo "==> Running tests and generating coverage report..."
-	@go test -v -coverprofile=coverage.out ./...
+	@echo "==> Running tests and generating raw coverage report..."
+	@go test -v -coverprofile=coverage.raw.out ./...
+
+	@echo "==> Filtering out main.go and mocks..."
+	@grep -v -E "main\.go|/mocks/" coverage.raw.out > coverage.out
+
+	@echo "==> Generating HTML report..."
 	@go tool cover -html=coverage.out -o coverage.html
+
 	@echo "==> Coverage Report per File:"
 	@go tool cover -func=coverage.out
+
+	@rm -f coverage.raw.out
 
 run: build
 	@echo "==> Running application in Docker..."

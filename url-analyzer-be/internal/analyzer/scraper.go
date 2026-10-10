@@ -82,9 +82,8 @@ func extractLinkFromNode(n *html.Node, tagName string) string {
 
 	for _, attr := range n.Attr {
 		if strings.ToLower(attr.Key) == targetAttr {
-			val := strings.TrimSpace(attr.Val)
-			if val != "" && !strings.HasPrefix(val, "javascript:") && !strings.HasPrefix(val, "data:") {
-				return normalizeURL(val)
+			if attr.Val != "" {
+				return normalizeURL(attr.Val)
 			}
 		}
 	}
