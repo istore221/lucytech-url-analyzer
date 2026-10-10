@@ -7,6 +7,8 @@ DOCKERFILE := Dockerfile
 all: run
 
 quality:
+	@echo "==> Running linter..."
+	@golangci-lint run ./...
 	@echo "==> Running tests and generating coverage report..."
 	@go test -v -coverprofile=coverage.out ./...
 	@go tool cover -html=coverage.out -o coverage.html

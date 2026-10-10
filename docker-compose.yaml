@@ -1,0 +1,34 @@
+services:
+  # Backend Service (Go)
+  backend:
+    build:
+      context: ./url-analyzer-be
+      dockerfile: Dockerfile
+      args:
+        APP_PATH: ./cmd/http/main.go
+    container_name: url-analyzer-be
+    ports:
+      - "8080:8080" 
+    environment:
+      - PORT=8080
+      - ENV=dev
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  # Frontend Service (Placeholder React App)
+  frontend:
+    image: nginxdemos/hello:latest 
+    container_name: url-analyzer-fe
+    ports:
+      - "3000:80" 
+    networks:
+      - app-network
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+
+networks:
+  app-network:
+    driver: bridge

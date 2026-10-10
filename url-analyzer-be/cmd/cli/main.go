@@ -23,7 +23,8 @@ type AnalysisResult struct {
 func main() {
 	urls := []string{
 		//"https://www.york.ac.uk/teaching/cws/wws/webpage1.html",
-		"https://toscrape.com/",
+		"https://quotes.toscrape.com/",
+		//"https://quotes.toscrape.com/login",
 		//"https://www.scrapethissite.com/pages/",
 		//"https://www.scrapethissite.com/login/",
 		//"https://golang.org",
