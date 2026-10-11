@@ -27,6 +27,8 @@ services:
     build:
       context: ./url-analyzer-fe
       dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: http://localhost:8080
     container_name: url-analyzer-fe
     ports:
       - "3000:80" 
