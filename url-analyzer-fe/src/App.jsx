@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Globe, Play, Copy, Check, RefreshCw, AlertCircle, Sparkles, Terminal, ChevronsDown, ChevronsUp } from 'lucide-react';
+import { Globe, Play, Copy, Check, RefreshCw, AlertCircle, Sparkles, Terminal, ChevronsDown, ChevronsUp, XCircle } from 'lucide-react';
 import { JsonViewer } from '@textea/json-viewer';
 
 export default function App() {
@@ -19,7 +19,7 @@ export default function App() {
 
   const timerRef = useRef(null);
 
-  // 1. Fetch timeout configuration on component mount
+  // Fetch timeout configuration on component mount
   useEffect(() => {
     const fetchConfig = async () => {
       try {
@@ -44,7 +44,10 @@ export default function App() {
     
     const trimmedUrl = url.trim();
     if (!trimmedUrl) {
-      setError('Please enter a valid URL.');
+      setError({
+        code: 'VALIDATION_ERROR',
+        message: 'Please enter a valid URL.',
+      });
       return;
     }
 
@@ -52,7 +55,7 @@ export default function App() {
     setError(null);
     setResponseJson(null);
     
-    // Reset timer and reset state to expanded by default for new JSON renders
+    // Reset timer and state
     const startDuration = defaultTimeout;
     setTimeLeft(startDuration);
     setIsAllExpanded(true);
@@ -86,14 +89,30 @@ export default function App() {
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) {
-        throw new Error(`Server returned status code ${res.status}`);
-      }
-
       const data = await res.json();
       setResponseJson(data);
+
+      // 1. Check for top-level batch/API error (e.g. status 400 or top-level "error" object)
+      if (!res.ok || data.error) {
+        setError(data.error || { code: `HTTP_${res.status}`, message: res.statusText });
+        return;
+      }
+
+      // 2. Check for item-level URL processing errors inside data array (status 200 with error payload)
+      if (Array.isArray(data.data) && data.data.length > 0) {
+        const itemWithError = data.data.find((item) => item.error);
+        if (itemWithError) {
+          setError({
+            url: itemWithError.url,
+            ...itemWithError.error
+          });
+        }
+      }
     } catch (err) {
-      setError(err.message || 'Failed to connect to the API.');
+      setError({
+        code: 'CONNECTION_ERROR',
+        message: err.message || 'Failed to connect to the API server.',
+      });
     } finally {
       if (timerRef.current) {
         clearInterval(timerRef.current);
@@ -116,7 +135,6 @@ export default function App() {
     };
   }, []);
 
-  // Calculate percentage dynamically based on fetched config timeout
   const progressPercentage = defaultTimeout > 0 
     ? ((defaultTimeout - timeLeft) / defaultTimeout) * 100 
     : 100;
@@ -149,7 +167,6 @@ export default function App() {
             <div className="flex flex-col space-y-2">
               <label className="text-xs font-semibold uppercase tracking-wider text-slate-400 flex justify-between items-center">
                 <span>Target Web Page URL</span>
-                <span className="text-[11px] text-slate-500 font-mono normal-case"></span>
               </label>
 
               <div className="relative flex items-center">
@@ -206,13 +223,42 @@ export default function App() {
             </div>
           )}
 
+          {/* Structured Error Alert Card */}
           {error && (
-            <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 flex items-start gap-3 text-sm">
-              <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-              <div>
-                <span className="font-semibold block">Error Occurred</span>
-                {error}
+            <div className="p-4 rounded-xl bg-red-950/40 border border-red-500/30 text-red-300 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 font-semibold text-red-400 text-sm">
+                  <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+                  <span>Processing Error</span>
+                </div>
+                {error.code && (
+                  <span className="text-[10px] font-mono uppercase bg-red-500/20 text-red-300 px-2 py-0.5 rounded border border-red-500/30">
+                    {error.code}
+                  </span>
+                )}
               </div>
+
+              {error.message && (
+                <p className="text-xs text-slate-300 pl-6 leading-relaxed">
+                  {error.message}
+                </p>
+              )}
+
+              {error.url && (
+                <div className="pl-6 text-[11px] font-mono text-slate-400 truncate">
+                  <span className="text-slate-500">Target URL: </span>{error.url}
+                </div>
+              )}
+
+              {Array.isArray(error.details) && error.details.length > 0 && (
+                <div className="pl-6 pt-1">
+                  <ul className="list-disc list-inside text-xs text-slate-400 space-y-1 bg-slate-950/50 p-2.5 rounded-lg border border-red-500/10">
+                    {error.details.map((detail, idx) => (
+                      <li key={idx}>{detail}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -224,8 +270,12 @@ export default function App() {
               <div className="flex items-center gap-2 text-slate-300 font-mono text-xs">
                 <Terminal className="w-4 h-4 text-emerald-400" />
                 <span>Response Tree</span>
-                <span className="bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded text-[10px] font-semibold border border-emerald-500/20">
-                  200 OK
+                <span className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${
+                  error 
+                    ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' 
+                    : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                }`}>
+                  {responseJson.status ? `${responseJson.status}` : '200 OK'}
                 </span>
               </div>
 

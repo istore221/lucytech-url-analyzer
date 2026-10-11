@@ -39,7 +39,7 @@ func main() {
 	router.GET("/health", scrapeHandler.Health)
 	router.GET("/api/v1/config", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
-			"scrape_timeout_seconds": cfg.ScrapeTimeout.Seconds(),
+			"scrape_timeout_seconds": cfg.ScrapeTimeout.Seconds(), // frontend will show countdown based on this endpoint
 		})
 	})
 	router.POST("/api/v1/scrape", scrapeHandler.Scrape)
