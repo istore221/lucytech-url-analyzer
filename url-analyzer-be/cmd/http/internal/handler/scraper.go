@@ -19,19 +19,19 @@ type ScrapeHandler struct {
 	engine                  scraper.Engine
 	scrapeTimeout           time.Duration
 	MaxHTTPBatchConcurrency int
-	maxBatchSize            int
+	MaxHTTPBatchSize        int
 }
 
 func NewScrapeHandler(engine scraper.Engine,
 	timeout time.Duration,
 	MaxHTTPBatchConcurrency,
-	maxBatchSize int) *ScrapeHandler {
+	MaxHTTPBatchSize int) *ScrapeHandler {
 
 	return &ScrapeHandler{
 		engine:                  engine,
 		scrapeTimeout:           timeout,
 		MaxHTTPBatchConcurrency: MaxHTTPBatchConcurrency,
-		maxBatchSize:            maxBatchSize,
+		MaxHTTPBatchSize:        MaxHTTPBatchSize,
 	}
 }
 
@@ -81,13 +81,13 @@ func (h *ScrapeHandler) Scrape(c *gin.Context) {
 		return
 	}
 
-	if len(req.URLs) > h.maxBatchSize {
+	if len(req.URLs) > h.MaxHTTPBatchSize {
 		c.JSON(http.StatusBadRequest, models.APIResponse{
 			Status: http.StatusBadRequest,
 			Error: apperrors.NewAPIError(
 				apperrors.CodeBatchSizeExceeded,
 				apperrors.MsgBatchSizeExceeded,
-				fmt.Sprintf("Batch size %d exceeds maximum limit of %d URLs", len(req.URLs), h.maxBatchSize),
+				fmt.Sprintf("Batch size %d exceeds maximum limit of %d URLs", len(req.URLs), h.MaxHTTPBatchSize),
 			),
 		})
 		return
