@@ -30,6 +30,8 @@ func main() {
 		cfg.MaxHTTPBatchSize)
 
 	router := gin.Default()
+	router.Use(gin.Logger())
+	router.Use(gin.Recovery())
 
 	router.GET("/health", scrapeHandler.Health)
 	router.POST("/api/v1/scrape", scrapeHandler.Scrape)

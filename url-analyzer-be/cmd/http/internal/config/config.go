@@ -13,6 +13,8 @@ type Config struct {
 	MaxHTTPBatchSize        int           `mapstructure:"MAX_HTTP_BATCH_SIZE"`
 	MaxHTTPBatchConcurrency int           `mapstructure:"MAX_HTTP_BATCH_CONCURRENCY"`
 	AnalyzerWorkerPoolSize  int           `mapstructure:"ANALYZER_WORKER_POOL_SIZE"`
+	HTTPTimeout             time.Duration `mapstructure:"HTTP_TIMEOUT"`
+	LogLevel                string        `mapstructure:"LOG_LEVEL"`
 }
 
 func Load() *Config {
@@ -22,6 +24,8 @@ func Load() *Config {
 	viper.SetDefault("MAX_HTTP_BATCH_CONCURRENCY", 10)
 	viper.SetDefault("MAX_HTTP_BATCH_SIZE", 1)
 	viper.SetDefault("ANALYZER_WORKER_POOL_SIZE", 10)
+	viper.SetDefault("HTTPTimeout", "20s")
+	viper.SetDefault("LOG_LEVEL", "DEBUG")
 
 	viper.AutomaticEnv()
 
@@ -44,6 +48,8 @@ func Load() *Config {
 		MaxHTTPBatchConcurrency: viper.GetInt("MAX_HTTP_BATCH_CONCURRENCY"),
 		MaxHTTPBatchSize:        viper.GetInt("MAX_HTTP_BATCH_SIZE"),
 		AnalyzerWorkerPoolSize:  viper.GetInt("ANALYZER_WORKER_POOL_SIZE"),
+		HTTPTimeout:             viper.GetDuration("HTTP_TIMEOUT"),
+		LogLevel:                viper.GetString("LOG_LEVEL"),
 	}
 
 	return cfg

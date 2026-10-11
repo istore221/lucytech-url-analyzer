@@ -1,84 +1,62 @@
 # lucytech-url-analyzer
 
-A Go application set up with multi-stage Docker builds for minimal image size and automated task execution.
-
 ## Prerequisites
 
 Before running the application, make sure you have installed:
 
-* [Docker Desktop](https://docs.docker.com/get-docker/) (Ensure the Docker daemon is running)
-* **macOS/Linux:** `make` utility (usually pre-installed)
-* **Windows:** [Task](https://taskfile.dev/#/installation) (`winget install Task.Task` or `choco install task`)
-* **Local Go (Optional):** Go v1.24+ (if running without Docker)
+- [Docker Desktop](https://docs.docker.com/get-docker/) (Ensure the Docker daemon is running)
+- **macOS/Linux:** `make` utility (usually pre-installed)
+- port **3000** and **8080** must be available. if not change **docker-compose.yaml** 
 
 ---
 
-## 1. Running on macOS / Linux (using Makefile)
+## 1. Quick Start (Using Makefile)
 
-Using the included `Makefile`:
+If `make` is installed on your system, use the provided shortcuts to manage the application lifecycle:
 
 ```bash
-# Build and run application in Docker (auto-removes container on exit)
+# Build images and start services in the background
+cd lucytech-url-analyzer/
 make run
 ```
 
-### Available Make Targets
+### Service Endpoints
 
-| Target | Description |
-| :--- | :--- |
-| `make run` | **(Default)** Builds the Docker image and executes the app inside a container. |
-| `make build` | Builds the optimized multi-stage Docker image. |
-| `make clean` | Deletes the local Docker image. |
-| `make help` | Lists all available targets and descriptions. |
+Once the application is running, you can access the services at:
+
+- **Frontend:** [http://localhost:3000](http://localhost:3000)
+- **Backend:** [http://localhost:8080](http://localhost:8080)
 
 ---
 
-## 2. Running on Windows (using Taskfile.yml)
+## 2. Makefile Commands
 
-Using [Task](https://taskfile.dev):
-
-```powershell
-# Build and run application in Docker (auto-removes container on exit)
-task run
-```
-
-### Available Task Commands
-
-| Command | Description |
-| :--- | :--- |
-| `task run` | **(Default)** Builds and runs the application inside Docker. |
-| `task build` | Builds the Docker image. |
-| `task clean` | Removes the Docker image from local store. |
+| Target | Executed Command | Description |
+| :--- | :--- | :--- |
+| `make run` | `docker compose up --build -d` | Builds, creates, and starts containers in detached mode, then prints access URLs. |
+| `make stop` | `docker compose down` | Stops and removes running containers and associated networks. |
+| `make build` | `docker compose build` | Builds or rebuilds service images defined in `docker-compose.yml`. |
+| `make logs` | `docker compose logs -f` | Streams live logs from all running containers. |
+| `make ps` | `docker compose ps` | Lists the status and port mappings of running containers. |
 
 ---
 
-## 3. Running Manually (Docker & Native Go)
+## 3. Alternative Execution Methods
 
-If you do not want to use `make` or `task`, you can run the application directly on any platform (macOS, Linux, or Windows PowerShell/Command Prompt).
+### Running Docker Compose Manually
 
-### Option A: Using Docker Manually
-
-1. **Build the Docker image:**
-   ```bash
-   docker build -t lucytech-url-analyzer -f Dockerfile .
-   ```
-
-2. **Run the container (auto-cleans on exit):**
-   ```bash
-   docker run --rm lucytech-url-analyzer
-   ```
-
-3. **Clean up image (optional):**
-   ```bash
-   docker rmi lucytech-url-analyzer
-   ```
-
-### Option B: Native Go Execution (Without Docker)
-
-If you have Go ($1.24+$) installed on your host system:
+If `make` is unavailable, execute the Docker Compose commands directly in your terminal:
 
 ```bash
-go run ./example/main.go
-```
+# Start containers in background
+docker compose up --build -d
 
----
+# View live output logs
+docker compose logs -f
+
+# Check container status
+docker compose ps
+
+# Stop containers
+docker compose down
+```

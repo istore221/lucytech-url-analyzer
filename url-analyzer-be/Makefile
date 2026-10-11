@@ -1,5 +1,7 @@
 IMAGE_NAME := lucytech-url-analyzer
 DOCKERFILE := Dockerfile
+# Default URL if none is provided on the command line
+URL := https://example.com
 
 .PHONY: all help build run clean
 
@@ -25,7 +27,7 @@ quality:
 
 run: build
 	@echo "==> Running application in Docker..."
-	@docker run --rm $(IMAGE_NAME)
+	@docker run --rm $(IMAGE_NAME) "$(URL)"
 
 
 build:
