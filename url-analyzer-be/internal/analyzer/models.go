@@ -5,9 +5,9 @@ type PageAnalysis struct {
 	HTMLVersion       string
 	Title             string
 	Headings          map[string]int
-	InternalLinks     []string
-	ExternalLinks     []string
-	InaccessibleLinks []string
+	InternalLinks     []Link
+	ExternalLinks     []Link
+	InaccessibleLinks []Link
 	HasLoginForm      bool
 }
 

@@ -86,22 +86,22 @@ func TestAnalyzer_Analyze(t *testing.T) {
 		assert.Equal(t, "HTML5", res.HTMLVersion)
 		assert.Equal(t, "Example Page", res.Title)
 
-		assert.ElementsMatch(t, []string{
-			"https://example.com/internal",
-			"https://example.com/broken",
-			"https://example.com/internal?arg=test#section",
+		assert.ElementsMatch(t, []analyzer.Link{
+			analyzer.ScrapedLink("https://example.com/internal"),
+			analyzer.ScrapedLink("https://example.com/broken"),
+			analyzer.ScrapedLink("https://example.com/internal?arg=test#section"),
 		}, res.InternalLinks)
 
-		assert.ElementsMatch(t, []string{
-			"https://external.com",
-			"https://broken-external.com",
-			"https://network-error.com",
+		assert.ElementsMatch(t, []analyzer.Link{
+			analyzer.ScrapedLink("https://external.com"),
+			analyzer.ScrapedLink("https://broken-external.com"),
+			analyzer.ScrapedLink("https://network-error.com"),
 		}, res.ExternalLinks)
 
-		assert.ElementsMatch(t, []string{
-			"https://example.com/broken",
-			"https://broken-external.com",
-			"https://network-error.com",
+		assert.ElementsMatch(t, []analyzer.Link{
+			analyzer.ScrapedLink("https://example.com/broken"),
+			analyzer.ScrapedLink("https://broken-external.com"),
+			analyzer.ScrapedLink("https://network-error.com"),
 		}, res.InaccessibleLinks)
 	})
 
@@ -139,7 +139,6 @@ func TestAnalyzer_Analyze(t *testing.T) {
 		assert.Empty(t, res.InternalLinks)
 		assert.Empty(t, res.ExternalLinks)
 		assert.Empty(t, res.InaccessibleLinks)
-
 	})
 
 	t.Run("automatically prefixes target URL without scheme with https", func(t *testing.T) {
@@ -383,8 +382,8 @@ func TestAnalyzer_Analyze(t *testing.T) {
 		res, err := a.Analyze(context.Background(), targetURL)
 
 		assert.NoError(t, err)
-		assert.ElementsMatch(t, []string{
-			"https://example.com/method-not-allowed",
+		assert.ElementsMatch(t, []analyzer.Link{
+			analyzer.ScrapedLink("https://example.com/method-not-allowed"),
 		}, res.InternalLinks)
 
 		assert.Empty(t, res.InaccessibleLinks)

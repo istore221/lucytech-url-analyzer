@@ -120,7 +120,7 @@ func (a *Analyzer) Analyze(ctx context.Context, targetURL string) (*PageAnalysis
 		return nil, err
 	}
 
-	var internalLinks, externalLinks, allValidatableLinks []string
+	var internalLinks, externalLinks, allValidatableLinks []Link
 	for _, rawLink := range scrapeData.RawLinks {
 		resolvedURL, resolveErr := parsedTarget.Parse(strings.TrimSpace(rawLink.URL()))
 		if resolveErr != nil || a.ignoredSchemes[strings.ToLower(resolvedURL.Scheme)] {
@@ -128,12 +128,12 @@ func (a *Analyzer) Analyze(ctx context.Context, targetURL string) (*PageAnalysis
 		}
 
 		linkStr := resolvedURL.String()
-		allValidatableLinks = append(allValidatableLinks, linkStr)
+		allValidatableLinks = append(allValidatableLinks, ScrapedLink(linkStr))
 
 		if resolvedURL.Host == parsedTarget.Host || resolvedURL.Host == "" {
-			internalLinks = append(internalLinks, linkStr)
+			internalLinks = append(internalLinks, ScrapedLink(linkStr))
 		} else {
-			externalLinks = append(externalLinks, linkStr)
+			externalLinks = append(externalLinks, ScrapedLink(linkStr))
 		}
 	}
 
@@ -154,13 +154,13 @@ func (a *Analyzer) Analyze(ctx context.Context, targetURL string) (*PageAnalysis
 	}, nil
 }
 
-func (a *Analyzer) getInaccessibleLinks(ctx context.Context, links []string) ([]string, error) {
+func (a *Analyzer) getInaccessibleLinks(ctx context.Context, links []Link) ([]Link, error) {
 	if len(links) == 0 {
 		return nil, nil
 	}
 
-	jobs := make(chan string, len(links))
-	results := make(chan string, len(links))
+	jobs := make(chan Link, len(links))
+	results := make(chan Link, len(links))
 	var wg sync.WaitGroup
 
 	numWorkers := a.workers
@@ -201,7 +201,7 @@ func (a *Analyzer) getInaccessibleLinks(ctx context.Context, links []string) ([]
 		close(results)
 	}()
 
-	var inaccessible []string
+	var inaccessible []Link
 	for brokenLink := range results {
 		inaccessible = append(inaccessible, brokenLink)
 	}
@@ -213,8 +213,8 @@ func (a *Analyzer) getInaccessibleLinks(ctx context.Context, links []string) ([]
 	return inaccessible, nil
 }
 
-func (a *Analyzer) isLinkInaccessible(ctx context.Context, link string) bool {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, link, nil)
+func (a *Analyzer) isLinkInaccessible(ctx context.Context, link Link) bool {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, link.URL(), nil)
 	if err != nil {
 		return true
 	}
