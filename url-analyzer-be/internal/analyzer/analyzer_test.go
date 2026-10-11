@@ -17,6 +17,59 @@ import (
 func TestAnalyzer_Analyze(t *testing.T) {
 	targetURL := "https://example.com"
 
+	t.Run("treats HTTP 301 Moved Permanently as accessible", func(t *testing.T) {
+		defer gock.Off()
+
+		gock.New(targetURL).
+			Get("/").
+			Reply(http.StatusOK)
+
+		gock.New(targetURL).
+			Get("/redirect-internal").
+			Reply(http.StatusMovedPermanently)
+
+		gock.New("https://redirected-external.com").
+			Get("/").
+			Reply(http.StatusMovedPermanently)
+
+		mockScraper := mocks.NewMockScraper(t)
+		expectedData := &analyzer.ScrapeData{
+			HTMLVersion: "HTML5",
+			Title:       "Example Page",
+			Headings:    map[string]int{"h1": 1},
+			RawLinks: []analyzer.Link{
+				analyzer.ScrapedLink("/redirect-internal"),
+				analyzer.ScrapedLink("https://redirected-external.com"),
+			},
+			HasLoginForm: false,
+		}
+
+		mockScraper.On("Scrape", mock.AnythingOfType("analyzer.ScrapeRequest")).
+			Return(expectedData, nil)
+
+		client := &http.Client{Transport: &http.Transport{}}
+		gock.InterceptClient(client)
+
+		a := analyzer.New(
+			analyzer.WithWorkers(1),
+			analyzer.WithScraper(mockScraper),
+			analyzer.WithHTTPClient(client),
+		)
+
+		res, err := a.Analyze(context.Background(), targetURL)
+
+		assert.NoError(t, err)
+		assert.ElementsMatch(t, []analyzer.Link{
+			analyzer.ScrapedLink("https://example.com/redirect-internal"),
+		}, res.InternalLinks)
+
+		assert.ElementsMatch(t, []analyzer.Link{
+			analyzer.ScrapedLink("https://redirected-external.com"),
+		}, res.ExternalLinks)
+
+		assert.Empty(t, res.InaccessibleLinks)
+	})
+
 	t.Run("it returns success for page analysis and detects inaccessible links", func(t *testing.T) {
 		defer gock.Off()
 

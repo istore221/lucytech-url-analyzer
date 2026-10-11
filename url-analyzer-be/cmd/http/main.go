@@ -10,7 +10,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+
 	"github.com/istore221/lucytech-url-analyzer/cmd/http/internal/config"
 	"github.com/istore221/lucytech-url-analyzer/cmd/http/internal/handler"
 	"github.com/istore221/lucytech-url-analyzer/cmd/http/internal/scraper"
@@ -30,10 +32,16 @@ func main() {
 		cfg.MaxHTTPBatchSize)
 
 	router := gin.Default()
+	router.Use(cors.Default()) // not recommended!!!
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
 
 	router.GET("/health", scrapeHandler.Health)
+	router.GET("/api/v1/config", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"scrape_timeout_seconds": cfg.ScrapeTimeout.Seconds(),
+		})
+	})
 	router.POST("/api/v1/scrape", scrapeHandler.Scrape)
 
 	srv := &http.Server{

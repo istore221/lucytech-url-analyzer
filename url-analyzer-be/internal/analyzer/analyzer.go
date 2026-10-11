@@ -52,6 +52,9 @@ func New(opts ...Option) *Analyzer {
 			"sms":    true,
 			"callto": true,
 
+			"android-app": true,
+			"ios-app":     true,
+
 			"file":   true,
 			"intent": true,
 		},
