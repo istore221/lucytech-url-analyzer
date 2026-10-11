@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>URL Analyzer API Documentation</title>
+  <link href="https://fonts.googleapis.com/css?family=Montserrat:300,400,700|Roboto:300,400,700" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="redoc-container"></div>
+
+  <!-- Redoc Standalone Bundle -->
+  <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
+
+  <script>
+    const spec = {
+      "openapi": "3.0.3",
+      "info": {
+        "title": "URL Analyzer & Web Scraper API",
+        "description": "High-performance batch web page analysis REST API built with Go and Gin.",
+        "version": "1.0.0"
+      },
+      "servers": [
+        {
+          "url": "http://localhost:8080",
+          "description": "Local Development Server"
+        }
+      ],
+      "paths": {
+        "/health": {
+          "get": {
+            "summary": "Health Check Probe",
+            "description": "Returns operational status of the service.",
+            "responses": {
+              "200": {
+                "description": "Service is UP and healthy",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/APIResponse"
+                    },
+                    "example": {
+                      "status": 200,
+                      "data": {
+                        "status": "UP"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "/scrape": {
+          "post": {
+            "summary": "Batch Analyze Webpages",
+            "description": "Submits a batch of target URLs for concurrent web page analysis. Handles URL validation and timeout failures gracefully per item.",
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/ScrapeRequest"
+                  },
+                  "example": {
+                    "urls": [
+                      { "url": "https://example.com" },
+                      { "url": "invalid-url-format" }
+                    ]
+                  }
+                }
+              }
+            },
+            "responses": {
+              "200": {
+                "description": "Batch operation processed (contains per-item results or errors)",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/BatchResponse"
+                    },
+                    "example": {
+                      "status": 200,
+                      "data": [
+                        {
+                          "url": "https://example.com",
+                          "analysis": {
+                            "url": "https://example.com",
+                            "html_version": "HTML5",
+                            "title": "Example Domain",
+                            "headings": { "h1": 1, "h2": 3 },
+                            "internal_links": [{ "url": "/about", "text": "About Us" }],
+                            "external_links": [{ "url": "https://golang.org", "text": "Go Language" }],
+                            "inaccessible_links": [],
+                            "has_login_form": false
+                          },
+                          "error": null
+                        },
+                        {
+                          "url": "invalid-url-format",
+                          "analysis": null,
+                          "error": {
+                            "code": "INVALID_URL",
+                            "message": "URL scheme must be http or https",
+                            "details": ["Unsupported protocol"]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              "400": {
+                "description": "Top-level HTTP request or array validation failure",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/APIErrorResponse"
+                    },
+                    "examples": {
+                      "EmptyBatch": {
+                        "summary": "Empty URLs array provided",
+                        "value": {
+                          "status": 400,
+                          "error": {
+                            "code": "EMPTY_BATCH",
+                            "message": "The 'urls' array must contain at least one item",
+                            "details": null
+                          }
+                        }
+                      },
+                      "InvalidJSON": {
+                        "summary": "Malformed JSON body",
+                        "value": {
+                          "status": 400,
+                          "error": {
+                            "code": "INVALID_JSON",
+                            "message": "Malformed JSON payload in request body",
+                            "details": ["unexpected EOF"]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "components": {
+        "schemas": {
+          "ScrapeRequest": {
+            "type": "object",
+            "required": ["urls"],
+            "properties": {
+              "urls": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/TargetURL"
+                }
+              }
+            }
+          },
+          "TargetURL": {
+            "type": "object",
+            "properties": {
+              "url": { "type": "string", "example": "https://example.com" }
+            }
+          },
+          "BatchResponse": {
+            "type": "object",
+            "properties": {
+              "status": { "type": "integer", "example": 200 },
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ScrapeItemResult"
+                }
+              }
+            }
+          },
+          "ScrapeItemResult": {
+            "type": "object",
+            "required": ["url"],
+            "properties": {
+              "url": { "type": "string" },
+              "analysis": {
+                "nullable": true,
+                "allOf": [
+                  { "$ref": "#/components/schemas/PageAnalysis" }
+                ],
+                "description": "Populated when analysis succeeds; null if scraping fails."
+              },
+              "error": {
+                "nullable": true,
+                "allOf": [
+                  { "$ref": "#/components/schemas/ScrapeError" }
+                ],
+                "description": "Populated when an error occurs for this URL; null on success."
+              }
+            }
+          },
+          "PageAnalysis": {
+            "type": "object",
+            "properties": {
+              "url": { "type": "string" },
+              "html_version": { "type": "string" },
+              "title": { "type": "string" },
+              "headings": {
+                "type": "object",
+                "additionalProperties": { "type": "integer" }
+              },
+              "internal_links": {
+                "type": "array",
+                "items": { "$ref": "#/components/schemas/Link" }
+              },
+              "external_links": {
+                "type": "array",
+                "items": { "$ref": "#/components/schemas/Link" }
+              },
+              "inaccessible_links": {
+                "type": "array",
+                "items": { "$ref": "#/components/schemas/Link" }
+              },
+              "has_login_form": { "type": "boolean" }
+            }
+          },
+          "Link": {
+            "type": "object",
+            "properties": {
+              "url": { "type": "string" },
+              "text": { "type": "string", "nullable": true }
+            }
+          },
+          "ScrapeError": {
+            "type": "object",
+            "required": ["code", "message"],
+            "properties": {
+              "code": { "type": "string", "example": "INVALID_URL" },
+              "message": { "type": "string", "example": "url field is required" },
+              "details": {
+                "type": "array",
+                "nullable": true,
+                "items": { "type": "string" },
+                "example": ["Unsupported protocol"]
+              }
+            }
+          },
+          "APIErrorResponse": {
+            "type": "object",
+            "properties": {
+              "status": { "type": "integer", "example": 400 },
+              "error": { "$ref": "#/components/schemas/APIError" }
+            }
+          },
+          "APIError": {
+            "type": "object",
+            "required": ["code", "message"],
+            "properties": {
+              "code": { "type": "string", "example": "EMPTY_BATCH" },
+              "message": { "type": "string", "example": "The 'urls' array must contain at least one item" },
+              "details": {
+                "type": "array",
+                "nullable": true,
+                "items": { "type": "string" }
+              }
+            }
+          },
+          "APIResponse": {
+            "type": "object",
+            "properties": {
+              "status": { "type": "integer", "example": 200 },
+              "data": { "type": "object", "nullable": true },
+              "error": {
+                "nullable": true,
+                "allOf": [
+                  { "$ref": "#/components/schemas/APIError" }
+                ]
+              }
+            }
+          }
+        }
+      }
+    };
+
+    Redoc.init(spec, {
+      scrollYOffset: 50,
+      theme: {
+        colors: {
+          primary: {
+            main: '#007ACC'
+          }
+        }
+      }
+    }, document.getElementById('redoc-container'));
+  </script>
+</body>
+</html>

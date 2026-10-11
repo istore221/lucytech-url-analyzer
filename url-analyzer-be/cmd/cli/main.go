@@ -28,7 +28,7 @@ func main() {
 		//"https://www.scrapethissite.com/pages/",
 		//"https://www.scrapethissite.com/login/",
 		//"https://golang.org",
-		"https://github.com",
+		//"https://github.com",
 		//"https://example.com",
 		//"https://this-will-fail-123.com",
 	}
