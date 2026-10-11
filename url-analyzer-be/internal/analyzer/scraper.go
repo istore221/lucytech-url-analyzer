@@ -8,6 +8,35 @@ import (
 	"golang.org/x/net/html"
 )
 
+// Link represents any link or resource URL extracted from a parsed document.
+//
+// We use an interface so the analyzer can handle different link types dynamically.
+// Higher-level analyzer components can perform type assertions (e.g., link.(FormLink))
+// to run type-specific logic, or inspect validation status.
+//
+// Examples of future link implementations:
+//
+//   - AnchorLink: standard text links (<a href="...">)
+//
+//   - MediaLink: images, scripts, or videos (<img src="...">, <script src="...">)
+//
+//   - FormLink: form action targets (<form action="..." method="POST">)
+//
+//   - AnalyzedLink: holds validation status and potential accessibility errors:
+//
+//     type AnalyzedLink struct {
+//     Link               // embeds the inner Link interface
+//     ValidationError error // e.g., HTTP 404, DNS resolution failure
+type Link interface {
+	URL() string
+}
+
+type ScrapedLink string
+
+func (l ScrapedLink) URL() string {
+	return string(l)
+}
+
 type ScrapeRequest struct {
 	Reader    io.Reader
 	TargetURL *url.URL
@@ -28,7 +57,7 @@ func (s *DefaultHTMLScraper) Scrape(req ScrapeRequest) (*ScrapeData, error) {
 	data := &ScrapeData{
 		HTMLVersion: "Unknown",
 		Headings:    make(map[string]int),
-		RawLinks:    make([]string, 0),
+		RawLinks:    make([]Link, 0),
 	}
 
 	data.HTMLVersion = extractDoctype(doc)
@@ -50,7 +79,7 @@ func (s *DefaultHTMLScraper) walk(n *html.Node, data *ScrapeData) {
 
 		// 2. Extract, clean, and resolve links
 		if linkURL := extractLinkFromNode(n, tagName); linkURL != "" {
-			data.RawLinks = append(data.RawLinks, linkURL)
+			data.RawLinks = append(data.RawLinks, ScrapedLink(linkURL))
 		}
 
 		// 3. Check for Password Input inside <form>

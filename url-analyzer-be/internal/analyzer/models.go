@@ -15,6 +15,6 @@ type ScrapeData struct {
 	HTMLVersion  string
 	Title        string
 	Headings     map[string]int
-	RawLinks     []string
+	RawLinks     []Link
 	HasLoginForm bool
 }

@@ -54,15 +54,15 @@ func TestAnalyzer_Analyze(t *testing.T) {
 			HTMLVersion: "HTML5",
 			Title:       "Example Page",
 			Headings:    map[string]int{"h1": 1},
-			RawLinks: []string{
-				"/internal",
-				"   https://external.com    ",
-				"https://network-error.com",
-				"/broken",
-				"https://broken-external.com",
-				"/internal?arg=test#section",
-				"javascript:alert(1)",
-				"DATA:image/png;base64,123",
+			RawLinks: []analyzer.Link{
+				analyzer.ScrapedLink("/internal"),
+				analyzer.ScrapedLink("   https://external.com    "),
+				analyzer.ScrapedLink("https://network-error.com"),
+				analyzer.ScrapedLink("/broken"),
+				analyzer.ScrapedLink("https://broken-external.com"),
+				analyzer.ScrapedLink("/internal?arg=test#section"),
+				analyzer.ScrapedLink("javascript:alert(1)"),
+				analyzer.ScrapedLink("DATA:image/png;base64,123"),
 			},
 			HasLoginForm: false,
 		}
@@ -113,7 +113,7 @@ func TestAnalyzer_Analyze(t *testing.T) {
 			HTMLVersion:  "HTML5",
 			Title:        "Example Page",
 			Headings:     map[string]int{"h1": 1},
-			RawLinks:     []string{},
+			RawLinks:     []analyzer.Link{},
 			HasLoginForm: false,
 		}
 
@@ -279,11 +279,11 @@ func TestAnalyzer_Analyze(t *testing.T) {
 		mockScraper := mocks.NewMockScraper(t)
 		mockScraper.On("Scrape", mock.AnythingOfType("analyzer.ScrapeRequest")).
 			Return(&analyzer.ScrapeData{
-				RawLinks: []string{
-					"mailto:user@example.com",
-					"tel:+1234567890",
-					"javascript:void(0)",
-					"file:///etc/passwd",
+				RawLinks: []analyzer.Link{
+					analyzer.ScrapedLink("mailto:user@example.com"),
+					analyzer.ScrapedLink("tel:+1234567890"),
+					analyzer.ScrapedLink("javascript:void(0)"),
+					analyzer.ScrapedLink("file:///etc/passwd"),
 				},
 			}, nil)
 
@@ -313,7 +313,10 @@ func TestAnalyzer_Analyze(t *testing.T) {
 		mockScraper := mocks.NewMockScraper(t)
 		mockScraper.On("Scrape", mock.AnythingOfType("analyzer.ScrapeRequest")).
 			Return(&analyzer.ScrapeData{
-				RawLinks: []string{"/slow-link-1", "/slow-link-2"},
+				RawLinks: []analyzer.Link{
+					analyzer.ScrapedLink("/slow-link-1"),
+					analyzer.ScrapedLink("/slow-link-2"),
+				},
 			}, nil)
 
 		client := &http.Client{Transport: &http.Transport{}}
@@ -341,5 +344,49 @@ func TestAnalyzer_Analyze(t *testing.T) {
 		assert.Error(t, err)
 		assert.Nil(t, res)
 		assert.ErrorIs(t, err, context.DeadlineExceeded)
+	})
+
+	t.Run("treats HTTP 405 Method Not Allowed as accessible", func(t *testing.T) {
+		defer gock.Off()
+
+		gock.New(targetURL).
+			Get("/").
+			Reply(http.StatusOK)
+
+		gock.New(targetURL).
+			Get("/method-not-allowed").
+			Reply(http.StatusMethodNotAllowed)
+
+		mockScraper := mocks.NewMockScraper(t)
+		expectedData := &analyzer.ScrapeData{
+			HTMLVersion: "HTML5",
+			Title:       "Example Page",
+			Headings:    map[string]int{"h1": 1},
+			RawLinks: []analyzer.Link{
+				analyzer.ScrapedLink("/method-not-allowed"),
+			},
+			HasLoginForm: false,
+		}
+
+		mockScraper.On("Scrape", mock.AnythingOfType("analyzer.ScrapeRequest")).
+			Return(expectedData, nil)
+
+		client := &http.Client{Transport: &http.Transport{}}
+		gock.InterceptClient(client)
+
+		a := analyzer.New(
+			analyzer.WithWorkers(1),
+			analyzer.WithScraper(mockScraper),
+			analyzer.WithHTTPClient(client),
+		)
+
+		res, err := a.Analyze(context.Background(), targetURL)
+
+		assert.NoError(t, err)
+		assert.ElementsMatch(t, []string{
+			"https://example.com/method-not-allowed",
+		}, res.InternalLinks)
+
+		assert.Empty(t, res.InaccessibleLinks)
 	})
 }

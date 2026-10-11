@@ -122,7 +122,7 @@ func (a *Analyzer) Analyze(ctx context.Context, targetURL string) (*PageAnalysis
 
 	var internalLinks, externalLinks, allValidatableLinks []string
 	for _, rawLink := range scrapeData.RawLinks {
-		resolvedURL, resolveErr := parsedTarget.Parse(strings.TrimSpace(rawLink))
+		resolvedURL, resolveErr := parsedTarget.Parse(strings.TrimSpace(rawLink.URL()))
 		if resolveErr != nil || a.ignoredSchemes[strings.ToLower(resolvedURL.Scheme)] {
 			continue
 		}
@@ -224,6 +224,10 @@ func (a *Analyzer) isLinkInaccessible(ctx context.Context, link string) bool {
 		return true
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusMethodNotAllowed {
+		return false
+	}
 
 	return resp.StatusCode >= 400
 }
