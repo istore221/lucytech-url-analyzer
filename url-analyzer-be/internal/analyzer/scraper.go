@@ -9,7 +9,8 @@ import (
 )
 
 type ScrapeRequest struct {
-	Reader io.Reader
+	Reader    io.Reader
+	TargetURL *url.URL
 }
 
 type Scraper interface {

@@ -107,7 +107,8 @@ func (a *Analyzer) Analyze(ctx context.Context, targetURL string) (*PageAnalysis
 
 	limitReader := io.LimitReader(resp.Body, maxBodySize)
 	scrapeData, err := a.scraper.Scrape(ScrapeRequest{
-		Reader: limitReader,
+		Reader:    limitReader,
+		TargetURL: parsedTarget,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrScrape, err)
