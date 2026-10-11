@@ -21,6 +21,7 @@ func TestDefaultHTMLScraper_Scrape_MoreCases(t *testing.T) {
 		wantData  *ScrapeData
 		assertErr assert.ErrorAssertionFunc
 	}{
+
 		{
 			name:      "Empty Document",
 			htmlInput: "",
@@ -231,6 +232,121 @@ func TestDefaultHTMLScraper_Scrape_MoreCases(t *testing.T) {
 				RawLinks: []string{
 					"javascript:alert(1)",
 					"data:image/png;base64,123",
+				},
+				HasLoginForm: false,
+			},
+			assertErr: assert.NoError,
+		},
+		{
+			name: "Cover href targetAttr elements (link, area, base)",
+			htmlInput: `<!DOCTYPE html>
+		<html lang="en">
+		<head>
+			<meta charset="utf-8">
+			<base href="https://example.com/api/">
+			<link rel="stylesheet" href="/styles.css">
+			<title>Href Attributes Test</title>
+		</head>
+		<body>
+			<map name="primary">
+				<area shape="rect" coords="0,0,82,126" href="/details">
+			</map>
+		</body>
+		</html>`,
+			wantData: &ScrapeData{
+				HTMLVersion: "HTML5",
+				Title:       "Href Attributes Test",
+				Headings:    map[string]int{},
+				RawLinks: []string{
+					"https://example.com/api/",
+					"/styles.css",
+					"/details",
+				},
+				HasLoginForm: false,
+			},
+			assertErr: assert.NoError,
+		},
+		{
+			name: "Cover src targetAttr elements (script, img, iframe, embed, source, track)",
+			htmlInput: `<!DOCTYPE html>
+		<html lang="en">
+		<head>
+			<meta charset="utf-8">
+			<script src="/app.js"></script>
+			<title>Src Attributes Test</title>
+		</head>
+		<body>
+			<img src="/logo.png" alt="Logo">
+			<iframe src="https://example.com/embed"></iframe>
+			<embed src="/media.swf">
+			<video>
+				<source src="/video.mp4" type="video/mp4">
+				<track src="/subtitles.vtt" kind="subtitles">
+			</video>
+		</body>
+		</html>`,
+			wantData: &ScrapeData{
+				HTMLVersion: "HTML5",
+				Title:       "Src Attributes Test",
+				Headings:    map[string]int{},
+				RawLinks: []string{
+					"/app.js",
+					"/logo.png",
+					"https://example.com/embed",
+					"/media.swf",
+					"/video.mp4",
+					"/subtitles.vtt",
+				},
+				HasLoginForm: false,
+			},
+			assertErr: assert.NoError,
+		},
+		{
+			name: "Cover poster targetAttr element (video)",
+			htmlInput: `<!DOCTYPE html>
+		<html lang="en">
+		<head>
+			<meta charset="utf-8">
+			<title>Poster Attribute Test</title>
+		</head>
+		<body>
+			<video poster="/thumbnail.jpg">
+				<source src="/video.mp4" type="video/mp4">
+			</video>
+		</body>
+		</html>`,
+			wantData: &ScrapeData{
+				HTMLVersion: "HTML5",
+				Title:       "Poster Attribute Test",
+				Headings:    map[string]int{},
+				RawLinks: []string{
+					"/thumbnail.jpg",
+					"/video.mp4",
+				},
+				HasLoginForm: false,
+			},
+			assertErr: assert.NoError,
+		},
+		{
+			name: "Ignored attributes on non-matching elements",
+			htmlInput: `<!DOCTYPE html>
+		<html lang="en">
+		<head>
+			<meta charset="utf-8">
+			<title>Ignored Attributes Test</title>
+		</head>
+		<body>
+			<div href="/ignored-href" src="/ignored-src">Div</div>
+			<span action="/ignored-action">Span</span>
+			<a src="/ignored-src-on-a" href="/valid-href">Link</a>
+		</body>
+		</html>`,
+			wantData: &ScrapeData{
+				HTMLVersion: "HTML5",
+				Title:       "Ignored Attributes Test",
+				Headings:    map[string]int{},
+				RawLinks: []string{
+					"/valid-href",
 				},
 				HasLoginForm: false,
 			},
