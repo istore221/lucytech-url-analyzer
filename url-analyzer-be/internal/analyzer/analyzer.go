@@ -127,13 +127,14 @@ func (a *Analyzer) Analyze(ctx context.Context, targetURL string) (*PageAnalysis
 			continue
 		}
 
-		linkStr := resolvedURL.String()
-		allValidatableLinks = append(allValidatableLinks, ScrapedLink(linkStr))
+		scrapedLink := ScrapedLink(resolvedURL.String())
+
+		allValidatableLinks = append(allValidatableLinks, scrapedLink)
 
 		if resolvedURL.Host == parsedTarget.Host || resolvedURL.Host == "" {
-			internalLinks = append(internalLinks, ScrapedLink(linkStr))
+			internalLinks = append(internalLinks, scrapedLink)
 		} else {
-			externalLinks = append(externalLinks, ScrapedLink(linkStr))
+			externalLinks = append(externalLinks, scrapedLink)
 		}
 	}
 
