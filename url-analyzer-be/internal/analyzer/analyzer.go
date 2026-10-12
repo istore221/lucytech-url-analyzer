@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"path"
 	"strings"
 	"sync"
 	"time"
@@ -159,18 +160,43 @@ func (a *Analyzer) processAndValidateLinks(ctx context.Context, baseURL *url.URL
 }
 
 func (a *Analyzer) categorizeLinks(baseURL *url.URL, rawLinks []Link) CategorizedLinks {
-	var categorized CategorizedLinks
+
+	categorized := CategorizedLinks{
+		Validatable: make([]Link, 0, len(rawLinks)),
+		Internal:    make([]Link, 0, len(rawLinks)/2),
+		External:    make([]Link, 0, len(rawLinks)/2),
+	}
+
+	seen := make(map[string]struct{}, len(rawLinks))
 
 	for _, rawLink := range rawLinks {
-		resolvedURL, err := baseURL.Parse(strings.TrimSpace(rawLink.URL()))
-		if err != nil || a.ignoredSchemes[strings.ToLower(resolvedURL.Scheme)] {
+		rawURLStr := strings.TrimSpace(rawLink.URL())
+		if rawURLStr == "" {
 			continue
 		}
 
-		scrapedLink := ScrapedLink(resolvedURL.String())
+		resolvedURL, err := baseURL.Parse(rawURLStr)
+		if err != nil {
+			continue
+		}
+
+		scheme := strings.ToLower(resolvedURL.Scheme)
+		if a.ignoredSchemes[scheme] {
+			continue
+		}
+
+		normalizedURL := a.NormalizeURL(resolvedURL)
+		normalizedStr := normalizedURL.String()
+
+		if _, exists := seen[normalizedStr]; exists {
+			continue
+		}
+		seen[normalizedStr] = struct{}{}
+
+		scrapedLink := ScrapedLink(normalizedStr)
 		categorized.Validatable = append(categorized.Validatable, scrapedLink)
 
-		if resolvedURL.Host == baseURL.Host || resolvedURL.Host == "" {
+		if normalizedURL.Host == baseURL.Host || normalizedURL.Host == "" {
 			categorized.Internal = append(categorized.Internal, scrapedLink)
 		} else {
 			categorized.External = append(categorized.External, scrapedLink)
@@ -178,6 +204,37 @@ func (a *Analyzer) categorizeLinks(baseURL *url.URL, rawLinks []Link) Categorize
 	}
 
 	return categorized
+}
+
+func (a *Analyzer) NormalizeURL(u *url.URL) *url.URL {
+	cloned := *u
+
+	cloned.Scheme = strings.ToLower(cloned.Scheme)
+	cloned.Host = strings.ToLower(cloned.Host)
+
+	port := cloned.Port()
+	if (cloned.Scheme == "http" && port == "80") ||
+		(cloned.Scheme == "https" && port == "443") {
+		cloned.Host = cloned.Hostname()
+	}
+
+	cloned.Fragment = ""
+	cloned.RawFragment = ""
+
+	if cloned.RawQuery != "" {
+		cloned.RawQuery = cloned.Query().Encode()
+	}
+
+	if cloned.Path != "" {
+
+		cloned.Path = path.Clean(cloned.Path)
+
+		if cloned.Path == "/" {
+			cloned.Path = ""
+		}
+	}
+
+	return &cloned
 }
 
 func (a *Analyzer) getInaccessibleLinks(ctx context.Context, links []Link) ([]Link, error) {

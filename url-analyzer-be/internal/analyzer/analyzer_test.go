@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"net/url"
 	"testing"
 	"time"
 
@@ -30,7 +31,15 @@ func TestAnalyzer_Analyze(t *testing.T) {
 
 		gock.New(targetURL).
 			Get("/internal").
-			MatchParam("arg", "test").
+			MatchParam("a", "test").
+			MatchParam("b", "test").
+			Reply(http.StatusOK)
+
+		gock.New(targetURL).
+			Get("/internal").
+			MatchParam("a", "test").
+			MatchParam("b", "test").
+			MatchParam("c", "test").
 			Reply(http.StatusOK)
 
 		gock.New("https://external.com").
@@ -64,9 +73,14 @@ func TestAnalyzer_Analyze(t *testing.T) {
 				analyzer.ScrapedLink("https://network-error.com"),
 				analyzer.ScrapedLink("/broken"),
 				analyzer.ScrapedLink("https://broken-external.com"),
-				analyzer.ScrapedLink("/internal?arg=test#section"),
+				analyzer.ScrapedLink("/internal?b=test&a=test#section"),
+				analyzer.ScrapedLink("/internal?a=test&b=test"),
+				analyzer.ScrapedLink("/internal?c=test&b=test&a=test"),
 				analyzer.ScrapedLink("javascript:alert(1)"),
 				analyzer.ScrapedLink("DATA:image/png;base64,123"),
+				analyzer.ScrapedLink("DATA:image/png;base64,123"),
+				analyzer.ScrapedLink("tel:+1234567890"),
+				analyzer.ScrapedLink("ftp://://example.com"),
 			},
 			HasLoginForm: false,
 		}
@@ -93,7 +107,8 @@ func TestAnalyzer_Analyze(t *testing.T) {
 		assert.ElementsMatch(t, []analyzer.Link{
 			analyzer.ScrapedLink("https://example.com/internal"),
 			analyzer.ScrapedLink("https://example.com/broken"),
-			analyzer.ScrapedLink("https://example.com/internal?arg=test#section"),
+			analyzer.ScrapedLink("https://example.com/internal?a=test&b=test"),
+			analyzer.ScrapedLink("https://example.com/internal?a=test&b=test&c=test"),
 		}, res.InternalLinks)
 
 		assert.ElementsMatch(t, []analyzer.Link{
@@ -349,4 +364,97 @@ func TestAnalyzer_Analyze(t *testing.T) {
 		assert.ErrorIs(t, err, context.DeadlineExceeded)
 	})
 
+}
+
+func TestNormalizeURL(t *testing.T) {
+
+	a := &analyzer.Analyzer{}
+
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "lowercase scheme and host",
+			input:    "HTTPS://EXAMPLE.COM/page",
+			expected: "https://example.com/page",
+		},
+		{
+			name:     "remove default http port",
+			input:    "http://example.com:80/path",
+			expected: "http://example.com/path",
+		},
+		{
+			name:     "remove default https port",
+			input:    "https://example.com:443/path",
+			expected: "https://example.com/path",
+		},
+		{
+			name:     "keep non-default port",
+			input:    "https://example.com:8443/path",
+			expected: "https://example.com:8443/path",
+		},
+		{
+			name:     "remove fragment",
+			input:    "https://example.com/page#section-1",
+			expected: "https://example.com/page",
+		},
+		{
+			name:     "sort query parameters",
+			input:    "https://example.com/api?z=1&a=2&b=3",
+			expected: "https://example.com/api?a=2&b=3&z=1",
+		},
+		{
+			name:     "remove root trailing slash",
+			input:    "https://example.com/",
+			expected: "https://example.com",
+		},
+		{
+			name:     "remove path trailing slash",
+			input:    "https://example.com/about/",
+			expected: "https://example.com/about",
+		},
+		{
+			name:     "clean duplicate slashes",
+			input:    "https://example.com//api///v1//users",
+			expected: "https://example.com/api/v1/users",
+		},
+		{
+			name:     "resolve relative paths (.. and .)",
+			input:    "https://example.com/a/b/../c/./d",
+			expected: "https://example.com/a/c/d",
+		},
+		{
+			name:     "complex combination of all rules",
+			input:    "HTTPS://EXAMPLE.COM:443//api/v1/../v2/?z=99&a=1#top",
+			expected: "https://example.com/api/v2?a=1&z=99",
+		},
+		{
+			name:     "root trailing slash with query params",
+			input:    "https://example.com/?query=1",
+			expected: "https://example.com?query=1",
+		},
+		{
+			name:     "already clean url remains unchanged",
+			input:    "https://example.com/clean/path?q=search",
+			expected: "https://example.com/clean/path?q=search",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			parsedURL, err := url.Parse(tt.input)
+			if err != nil {
+				t.Fatalf("failed to parse input url: %v", err)
+			}
+
+			normalized := a.NormalizeURL(parsedURL)
+			actual := normalized.String()
+
+			if actual != tt.expected {
+				t.Errorf("\nexpected: %s\ngot:      %s", tt.expected, actual)
+			}
+		})
+	}
 }
