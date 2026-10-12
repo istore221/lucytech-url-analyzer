@@ -12,7 +12,7 @@ services:
     environment:
       - PORT=8080                    # Application HTTP server listening port
       - ENV=dev                      # Runtime environment mode (e.g., dev, staging, prod)
-      - SCRAPE_TIMEOUT=30s           # Maximum duration allowed per URL HTTP scraping request
+      - SCRAPE_TIMEOUT=20s           # Maximum duration allowed per URL HTTP scraping request
       - MAX_HTTP_BATCH_CONCURRENCY=10 # Max concurrent outbound HTTP requests for batch scraping
       - MAX_HTTP_BATCH_SIZE=1             # Maximum number of URLs processed per batch
       - ANALYZER_WORKER_POOL_SIZE=10 # Total background worker goroutines analyzing URLs for inaccessibility
