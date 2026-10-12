@@ -14,16 +14,6 @@ func TestErrorsExist(t *testing.T) {
 		expected string
 	}{
 		{
-			name:     "ErrRequestAborted",
-			err:      analyzer.ErrRequestAborted,
-			expected: "request aborted by context",
-		},
-		{
-			name:     "ErrNetwork",
-			err:      analyzer.ErrNetwork,
-			expected: "network error",
-		},
-		{
 			name:     "ErrInvalidURL",
 			err:      analyzer.ErrInvalidURL,
 			expected: "invalid URL",

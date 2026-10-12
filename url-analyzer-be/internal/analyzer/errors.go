@@ -6,11 +6,6 @@ import (
 )
 
 var (
-	// ErrRequestAborted indicates the HTTP context was canceled.
-	ErrRequestAborted = errors.New("request aborted by context")
-
-	// ErrNetwork indicates a failure to connect or resolve the host.
-	ErrNetwork = errors.New("network error")
 
 	// ErrInvalidURL indicates the provided string is not a valid URL.
 	ErrInvalidURL = errors.New("invalid URL")

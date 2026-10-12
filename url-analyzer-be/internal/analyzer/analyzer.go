@@ -56,6 +56,7 @@ func New(opts ...Option) *Analyzer {
 			"ios-app":     true,
 
 			"file":   true,
+			"ftp":    true,
 			"intent": true,
 		},
 	}
@@ -218,20 +219,42 @@ func (a *Analyzer) getInaccessibleLinks(ctx context.Context, links []Link) ([]Li
 }
 
 func (a *Analyzer) isLinkInaccessible(ctx context.Context, link Link) bool {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, link.URL(), nil)
-	if err != nil {
-		return true
-	}
 
-	resp, err := a.client.Do(req)
-	if err != nil {
-		return true
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusMethodNotAllowed {
+	inaccessible, err := a.checkURL(ctx, http.MethodHead, link.URL())
+	if err == nil && !inaccessible {
 		return false
 	}
 
-	return resp.StatusCode >= 400
+	inaccessible, err = a.checkURL(ctx, http.MethodGet, link.URL())
+	if err != nil {
+		return true
+	}
+
+	return inaccessible
+}
+
+func (a *Analyzer) checkURL(ctx context.Context, method, targetURL string) (bool, error) {
+	req, err := http.NewRequestWithContext(ctx, method, targetURL, nil)
+	if err != nil {
+		return true, err
+	}
+
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+
+	resp, err := a.client.Do(req)
+	if err != nil {
+		return true, err
+	}
+	defer resp.Body.Close()
+
+	// If HEAD is blocked or disallowed (403, 405, 501), treat as inconclusive to trigger GET fallback
+	if method == http.MethodHead {
+		if resp.StatusCode == http.StatusMethodNotAllowed ||
+			resp.StatusCode == http.StatusForbidden ||
+			resp.StatusCode == http.StatusNotImplemented {
+			return true, fmt.Errorf("HEAD method not supported or blocked (status %d)", resp.StatusCode)
+		}
+	}
+
+	return resp.StatusCode >= 400, nil // ignoring 301,302 redirects for now
 }

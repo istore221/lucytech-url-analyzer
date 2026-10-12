@@ -27,7 +27,7 @@ func main() {
 		//"https://quotes.toscrape.com/login",
 		//"https://www.scrapethissite.com/pages/",
 		//"https://www.scrapethissite.com/login/",
-		//"https://golang.org",
+		"https://golang.org",
 		//"https://github.com",
 		//"https://example.com",
 		//"https://this-will-fail-123.com",
@@ -57,7 +57,7 @@ func main() {
 		go func(targetURL string) {
 			defer wg.Done()
 
-			ctx, cancel := context.WithTimeout(rootCtx, 20*time.Second)
+			ctx, cancel := context.WithTimeout(rootCtx, 50*time.Second)
 			defer cancel()
 
 			analysis, err := engine.Analyze(ctx, targetURL)
