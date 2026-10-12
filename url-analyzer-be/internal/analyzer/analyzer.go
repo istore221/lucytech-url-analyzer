@@ -41,12 +41,16 @@ func New(opts ...Option) *Analyzer {
 	t.MaxIdleConns = 100
 	t.MaxConnsPerHost = 100
 
+	browserHeaderTransport := &browserHeaderTransport{
+		base: t,
+	}
+
 	a := &Analyzer{
 		workers: defaultWorkers,
 		scraper: &DefaultHTMLScraper{},
 		client: &http.Client{
 			Timeout:   defaultTimeout,
-			Transport: t,
+			Transport: browserHeaderTransport,
 		},
 		ignoredSchemes: map[string]bool{
 			"javascript": true,
