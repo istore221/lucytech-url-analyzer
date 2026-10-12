@@ -17,6 +17,12 @@ const (
 	maxBodySize    = 2 * 1024 * 1024
 )
 
+type CategorizedLinks struct {
+	Internal    []Link
+	External    []Link
+	Validatable []Link
+}
+
 type Analyzer struct {
 	client         *http.Client
 	scraper        Scraper
@@ -124,25 +130,7 @@ func (a *Analyzer) Analyze(ctx context.Context, targetURL string) (*PageAnalysis
 		return nil, err
 	}
 
-	var internalLinks, externalLinks, allValidatableLinks []Link
-	for _, rawLink := range scrapeData.RawLinks {
-		resolvedURL, resolveErr := parsedTarget.Parse(strings.TrimSpace(rawLink.URL()))
-		if resolveErr != nil || a.ignoredSchemes[strings.ToLower(resolvedURL.Scheme)] {
-			continue
-		}
-
-		scrapedLink := ScrapedLink(resolvedURL.String())
-
-		allValidatableLinks = append(allValidatableLinks, scrapedLink)
-
-		if resolvedURL.Host == parsedTarget.Host || resolvedURL.Host == "" {
-			internalLinks = append(internalLinks, scrapedLink)
-		} else {
-			externalLinks = append(externalLinks, scrapedLink)
-		}
-	}
-
-	inaccessibleLinks, err := a.getInaccessibleLinks(ctx, allValidatableLinks)
+	links, inaccessibleLinks, err := a.processAndValidateLinks(ctx, parsedTarget, scrapeData.RawLinks)
 	if err != nil {
 		return nil, err
 	}
@@ -152,11 +140,44 @@ func (a *Analyzer) Analyze(ctx context.Context, targetURL string) (*PageAnalysis
 		HTMLVersion:       scrapeData.HTMLVersion,
 		Title:             scrapeData.Title,
 		Headings:          scrapeData.Headings,
-		InternalLinks:     internalLinks,
-		ExternalLinks:     externalLinks,
+		InternalLinks:     links.Internal,
+		ExternalLinks:     links.External,
 		InaccessibleLinks: inaccessibleLinks,
 		HasLoginForm:      scrapeData.HasLoginForm,
 	}, nil
+}
+
+func (a *Analyzer) processAndValidateLinks(ctx context.Context, baseURL *url.URL, rawLinks []Link) (CategorizedLinks, []Link, error) {
+	links := a.categorizeLinks(baseURL, rawLinks)
+
+	inaccessibleLinks, err := a.getInaccessibleLinks(ctx, links.Validatable)
+	if err != nil {
+		return CategorizedLinks{}, nil, err
+	}
+
+	return links, inaccessibleLinks, nil
+}
+
+func (a *Analyzer) categorizeLinks(baseURL *url.URL, rawLinks []Link) CategorizedLinks {
+	var categorized CategorizedLinks
+
+	for _, rawLink := range rawLinks {
+		resolvedURL, err := baseURL.Parse(strings.TrimSpace(rawLink.URL()))
+		if err != nil || a.ignoredSchemes[strings.ToLower(resolvedURL.Scheme)] {
+			continue
+		}
+
+		scrapedLink := ScrapedLink(resolvedURL.String())
+		categorized.Validatable = append(categorized.Validatable, scrapedLink)
+
+		if resolvedURL.Host == baseURL.Host || resolvedURL.Host == "" {
+			categorized.Internal = append(categorized.Internal, scrapedLink)
+		} else {
+			categorized.External = append(categorized.External, scrapedLink)
+		}
+	}
+
+	return categorized
 }
 
 func (a *Analyzer) getInaccessibleLinks(ctx context.Context, links []Link) ([]Link, error) {
