@@ -10,6 +10,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/enetx/surf"
 )
 
 const (
@@ -32,26 +34,17 @@ type Analyzer struct {
 }
 
 func New(opts ...Option) *Analyzer {
-	var t *http.Transport
-	if dt, ok := http.DefaultTransport.(*http.Transport); ok {
-		t = dt.Clone()
-	} else {
-		t = &http.Transport{}
-	}
-	t.MaxIdleConns = 100
-	t.MaxConnsPerHost = 100
-
-	browserHeaderTransport := &browserHeaderTransport{
-		base: t,
-	}
+	surfClient := surf.NewClient().
+		Builder().
+		Impersonate().Chrome().
+		Session().
+		Build().
+		Unwrap()
 
 	a := &Analyzer{
 		workers: defaultWorkers,
 		scraper: &DefaultHTMLScraper{},
-		client: &http.Client{
-			Timeout:   defaultTimeout,
-			Transport: browserHeaderTransport,
-		},
+		client:  surfClient.Std(),
 		ignoredSchemes: map[string]bool{
 			"javascript": true,
 			"vbscript":   true,

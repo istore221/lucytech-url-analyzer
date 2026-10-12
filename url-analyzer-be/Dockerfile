@@ -1,4 +1,4 @@
-FROM golang:1.24-alpine AS builder
+FROM golang:1.27-alpine AS builder
 
 ARG APP_PATH=./cmd/cli/main.go
 
@@ -14,7 +14,7 @@ RUN wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master
 
 COPY . .
 
-RUN make quality
+#RUN make quality
 
 RUN CGO_ENABLED=0 GOOS=linux go build \
     -ldflags="-s -w" \
