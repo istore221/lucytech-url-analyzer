@@ -1,0 +1,1093 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>apperrors: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">github.com/istore221/lucytech-url-analyzer/cmd/http/internal/apperrors/errors.go (100.0%)</option>
+				
+				<option value="file1">github.com/istore221/lucytech-url-analyzer/cmd/http/internal/config/config.go (94.4%)</option>
+				
+				<option value="file2">github.com/istore221/lucytech-url-analyzer/cmd/http/internal/handler/scraper.go (98.0%)</option>
+				
+				<option value="file3">github.com/istore221/lucytech-url-analyzer/cmd/http/internal/scraper/engine.go (100.0%)</option>
+				
+				<option value="file4">github.com/istore221/lucytech-url-analyzer/internal/analyzer/analyzer.go (93.1%)</option>
+				
+				<option value="file5">github.com/istore221/lucytech-url-analyzer/internal/analyzer/browser_header_transport.go (100.0%)</option>
+				
+				<option value="file6">github.com/istore221/lucytech-url-analyzer/internal/analyzer/errors.go (100.0%)</option>
+				
+				<option value="file7">github.com/istore221/lucytech-url-analyzer/internal/analyzer/options.go (75.0%)</option>
+				
+				<option value="file8">github.com/istore221/lucytech-url-analyzer/internal/analyzer/scraper.go (92.4%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package apperrors
+
+import "github.com/istore221/lucytech-url-analyzer/cmd/http/internal/models"
+
+// Top-Level HTTP Error Codes
+const (
+        CodeInvalidJSON       = "INVALID_JSON"
+        CodeEmptyBatch        = "EMPTY_BATCH"
+        CodeInternalErr       = "INTERNAL_SERVER_ERROR"
+        CodeBatchSizeExceeded = "BATCH_SIZE_EXCEEDED"
+)
+
+// Item-Level Scrape Error Codes
+const (
+        CodeInvalidURL   = "INVALID_URL"
+        CodeScrapeFailed = "SCRAPE_FAILED"
+        CodeTimeout      = "TIMEOUT"
+)
+
+// Standard Error Messages
+const (
+        MsgInvalidJSON       = "Malformed JSON payload in request body"
+        MsgEmptyBatch        = "The 'urls' array must contain at least one item"
+        MsgTimeout           = "Analysis timed out"
+        MsgBatchSizeExceeded = "Batch payload exceeds maximum allowed size"
+)
+
+func NewAPIError(code, message string, details ...string) *models.APIError <span class="cov8" title="1">{
+        return &amp;models.APIError{
+                Code:    code,
+                Message: message,
+                Details: details,
+        }
+}</span>
+
+func NewScrapeError(code, message string, details ...string) *models.ScrapeError <span class="cov8" title="1">{
+        return &amp;models.ScrapeError{
+                Code:    code,
+                Message: message,
+                Details: details,
+        }
+}</span>
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package config
+
+import (
+        "log"
+        "time"
+
+        "github.com/spf13/viper"
+)
+
+type Config struct {
+        Port                    string        `mapstructure:"PORT"`
+        ScrapeTimeout           time.Duration `mapstructure:"SCRAPE_TIMEOUT"`
+        MaxHTTPBatchSize        int           `mapstructure:"MAX_HTTP_BATCH_SIZE"`
+        MaxHTTPBatchConcurrency int           `mapstructure:"MAX_HTTP_BATCH_CONCURRENCY"`
+        AnalyzerWorkerPoolSize  int           `mapstructure:"ANALYZER_WORKER_POOL_SIZE"`
+        HTTPTimeout             time.Duration `mapstructure:"HTTP_TIMEOUT"`
+        LogLevel                string        `mapstructure:"LOG_LEVEL"`
+}
+
+func Load() *Config <span class="cov8" title="1">{
+
+        viper.SetDefault("PORT", "8080")
+        viper.SetDefault("SCRAPE_TIMEOUT", "20s")
+        viper.SetDefault("MAX_HTTP_BATCH_CONCURRENCY", 10)
+        viper.SetDefault("MAX_HTTP_BATCH_SIZE", 1)
+        viper.SetDefault("ANALYZER_WORKER_POOL_SIZE", 10)
+        viper.SetDefault("HTTPTimeout", "20s")
+        viper.SetDefault("LOG_LEVEL", "DEBUG")
+
+        viper.AutomaticEnv()
+
+        viper.SetConfigName(".env")
+        viper.SetConfigType("env")
+
+        viper.AddConfigPath(".")
+        viper.AddConfigPath("./cmd/http")
+        viper.AddConfigPath("../..")
+
+        if err := viper.ReadInConfig(); err != nil </span><span class="cov8" title="1">{
+                if _, ok := err.(viper.ConfigFileNotFoundError); !ok </span><span class="cov0" title="0">{
+                        log.Printf("Warning: error reading config file: %v", err)
+                }</span>
+        }
+
+        <span class="cov8" title="1">cfg := &amp;Config{
+                Port:                    viper.GetString("PORT"),
+                ScrapeTimeout:           viper.GetDuration("SCRAPE_TIMEOUT"),
+                MaxHTTPBatchConcurrency: viper.GetInt("MAX_HTTP_BATCH_CONCURRENCY"),
+                MaxHTTPBatchSize:        viper.GetInt("MAX_HTTP_BATCH_SIZE"),
+                AnalyzerWorkerPoolSize:  viper.GetInt("ANALYZER_WORKER_POOL_SIZE"),
+                HTTPTimeout:             viper.GetDuration("HTTP_TIMEOUT"),
+                LogLevel:                viper.GetString("LOG_LEVEL"),
+        }
+
+        return cfg</span>
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package handler
+
+import (
+        "context"
+        "errors"
+        "fmt"
+        "net/http"
+        "net/url"
+        "sync"
+        "time"
+
+        "github.com/gin-gonic/gin"
+        "github.com/istore221/lucytech-url-analyzer/cmd/http/internal/apperrors"
+        "github.com/istore221/lucytech-url-analyzer/cmd/http/internal/models"
+        "github.com/istore221/lucytech-url-analyzer/cmd/http/internal/scraper"
+)
+
+type ScrapeHandler struct {
+        engine                  scraper.Engine
+        scrapeTimeout           time.Duration
+        MaxHTTPBatchConcurrency int
+        MaxHTTPBatchSize        int
+}
+
+func NewScrapeHandler(engine scraper.Engine,
+        timeout time.Duration,
+        MaxHTTPBatchConcurrency,
+        MaxHTTPBatchSize int) *ScrapeHandler <span class="cov8" title="1">{
+
+        return &amp;ScrapeHandler{
+                engine:                  engine,
+                scrapeTimeout:           timeout,
+                MaxHTTPBatchConcurrency: MaxHTTPBatchConcurrency,
+                MaxHTTPBatchSize:        MaxHTTPBatchSize,
+        }
+}</span>
+
+func (h *ScrapeHandler) Health(c *gin.Context) <span class="cov8" title="1">{
+        c.JSON(http.StatusOK, models.APIResponse{
+                Status: http.StatusOK,
+                Data: gin.H{
+                        "status": "UP",
+                },
+        })
+}</span>
+
+// validateURL checks for presence, valid structure, and HTTP/HTTPS scheme.
+func validateURL(target string) (string, error) <span class="cov8" title="1">{
+        if target == "" </span><span class="cov8" title="1">{
+                return "Missing value", errors.New("url field is required")
+        }</span>
+        <span class="cov8" title="1">parsed, err := url.ParseRequestURI(target)
+        if err != nil </span><span class="cov0" title="0">{
+                return "URL parsing error", errors.New("malformed URL format")
+        }</span>
+        <span class="cov8" title="1">if parsed.Scheme != "http" &amp;&amp; parsed.Scheme != "https" </span><span class="cov8" title="1">{
+                return "Unsupported protocol", errors.New("URL scheme must be http or https")
+        }</span>
+        <span class="cov8" title="1">if parsed.Host == "" </span><span class="cov8" title="1">{
+                return "Missing hostname", errors.New("URL missing host")
+        }</span>
+        <span class="cov8" title="1">return "", nil</span>
+}
+
+func (h *ScrapeHandler) Scrape(c *gin.Context) <span class="cov8" title="1">{
+        var req models.ScrapeRequest
+
+        if err := c.ShouldBindJSON(&amp;req); err != nil </span><span class="cov8" title="1">{
+                c.JSON(http.StatusBadRequest, models.APIResponse{
+                        Status: http.StatusBadRequest,
+                        Error:  apperrors.NewAPIError(apperrors.CodeInvalidJSON, apperrors.MsgInvalidJSON, err.Error()),
+                })
+                return
+        }</span>
+
+        <span class="cov8" title="1">if len(req.URLs) == 0 </span><span class="cov8" title="1">{
+                c.JSON(http.StatusBadRequest, models.APIResponse{
+                        Status: http.StatusBadRequest,
+                        Error:  apperrors.NewAPIError(apperrors.CodeEmptyBatch, apperrors.MsgEmptyBatch),
+                })
+                return
+        }</span>
+
+        <span class="cov8" title="1">if len(req.URLs) &gt; h.MaxHTTPBatchSize </span><span class="cov8" title="1">{
+                c.JSON(http.StatusBadRequest, models.APIResponse{
+                        Status: http.StatusBadRequest,
+                        Error: apperrors.NewAPIError(
+                                apperrors.CodeBatchSizeExceeded,
+                                apperrors.MsgBatchSizeExceeded,
+                                fmt.Sprintf("Batch size %d exceeds maximum limit of %d URLs", len(req.URLs), h.MaxHTTPBatchSize),
+                        ),
+                })
+                return
+        }</span>
+
+        <span class="cov8" title="1">ctx, cancel := context.WithTimeout(c.Request.Context(), h.scrapeTimeout)
+        defer cancel()
+
+        results := make([]models.ScrapeItemResult, len(req.URLs))
+        var wg sync.WaitGroup
+
+        limitConcurrency := make(chan struct{}, h.MaxHTTPBatchConcurrency)
+
+        for i, target := range req.URLs </span><span class="cov8" title="1">{
+                limitConcurrency &lt;- struct{}{}
+                wg.Add(1)
+
+                go func(index int, item models.TargetURL) </span><span class="cov8" title="1">{
+                        defer wg.Done()
+                        defer func() </span><span class="cov8" title="1">{ &lt;-limitConcurrency }</span>()
+
+                        <span class="cov8" title="1">if detail, err := validateURL(item.URL); err != nil </span><span class="cov8" title="1">{
+                                results[index] = models.ScrapeItemResult{
+                                        URL:   item.URL,
+                                        Error: apperrors.NewScrapeError(apperrors.CodeInvalidURL, err.Error(), detail),
+                                }
+                                return
+                        }</span>
+
+                        <span class="cov8" title="1">analysis, err := h.engine.Analyze(ctx, item.URL)
+                        if err != nil </span><span class="cov8" title="1">{
+                                errCode := apperrors.CodeScrapeFailed
+                                errMsg := "Failed to complete webpage analysis"
+                                detail := err.Error()
+
+                                if errors.Is(err, context.DeadlineExceeded) </span><span class="cov8" title="1">{
+                                        errCode = apperrors.CodeTimeout
+                                        errMsg = apperrors.MsgTimeout
+                                        detail = "Execution exceeded configured timeout duration"
+                                }</span>
+
+                                <span class="cov8" title="1">results[index] = models.ScrapeItemResult{
+                                        URL:   item.URL,
+                                        Error: apperrors.NewScrapeError(errCode, errMsg, detail),
+                                }
+                                return</span>
+                        }
+
+                        <span class="cov8" title="1">results[index] = models.ScrapeItemResult{
+                                URL:      item.URL,
+                                Analysis: analysis,
+                        }</span>
+                }(i, target)
+        }
+
+        <span class="cov8" title="1">wg.Wait()
+
+        c.JSON(http.StatusOK, models.APIResponse{
+                Status: http.StatusOK,
+                Data:   results,
+        })</span>
+}
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">package scraper
+
+import (
+        "context"
+        "errors"
+
+        "github.com/istore221/lucytech-url-analyzer/cmd/http/internal/models"
+        "github.com/istore221/lucytech-url-analyzer/internal/analyzer"
+)
+
+type Engine interface {
+        Analyze(ctx context.Context, targetURL string) (*models.PageAnalysis, error)
+}
+
+type ScraperEngine interface {
+        Analyze(ctx context.Context, targetURL string) (*analyzer.PageAnalysis, error)
+}
+
+type AnalyzeService struct {
+        engine ScraperEngine
+}
+
+func NewService(engine ScraperEngine) *AnalyzeService <span class="cov8" title="1">{
+        return &amp;AnalyzeService{
+                engine: engine,
+        }
+}</span>
+
+func (s *AnalyzeService) Analyze(ctx context.Context, targetURL string) (*models.PageAnalysis, error) <span class="cov8" title="1">{
+
+        analysis, err := s.engine.Analyze(ctx, targetURL)
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">if analysis == nil </span><span class="cov8" title="1">{
+                return nil, errors.New("analyzer returned empty result")
+        }</span>
+
+        <span class="cov8" title="1">return mapToAPIModel(analysis), nil</span>
+}
+
+func mapToAPIModel(src *analyzer.PageAnalysis) *models.PageAnalysis <span class="cov8" title="1">{
+        return &amp;models.PageAnalysis{
+                URL:               src.URL,
+                HTMLVersion:       src.HTMLVersion,
+                Title:             src.Title,
+                Headings:          src.Headings,
+                InternalLinks:     mapLinks(src.InternalLinks),
+                ExternalLinks:     mapLinks(src.ExternalLinks),
+                InaccessibleLinks: mapLinks(src.InaccessibleLinks),
+                HasLoginForm:      src.HasLoginForm,
+        }
+}</span>
+
+func mapLinks(srcLinks []analyzer.Link) []models.Link <span class="cov8" title="1">{
+        if srcLinks == nil </span><span class="cov8" title="1">{
+                return []models.Link{}
+        }</span>
+
+        <span class="cov8" title="1">links := make([]models.Link, len(srcLinks))
+        for i, l := range srcLinks </span><span class="cov8" title="1">{
+                links[i] = models.Link{
+                        URL: l.URL(),
+                }
+        }</span>
+        <span class="cov8" title="1">return links</span>
+}
+</pre>
+		
+		<pre class="file" id="file4" style="display: none">package analyzer
+
+import (
+        "context"
+        "fmt"
+        "io"
+        "net/http"
+        "net/url"
+        "path"
+        "strings"
+        "sync"
+        "time"
+)
+
+const (
+        defaultWorkers = 10
+        defaultTimeout = 15 * time.Second
+        maxBodySize    = 2 * 1024 * 1024
+)
+
+type CategorizedLinks struct {
+        Internal    []Link
+        External    []Link
+        Validatable []Link
+}
+
+type Analyzer struct {
+        client         *http.Client
+        scraper        Scraper
+        workers        int
+        ignoredSchemes map[string]bool
+}
+
+func New(opts ...Option) *Analyzer <span class="cov8" title="1">{
+        var t *http.Transport
+        if dt, ok := http.DefaultTransport.(*http.Transport); ok </span><span class="cov8" title="1">{
+                t = dt.Clone()
+        }</span> else<span class="cov8" title="1"> {
+                t = &amp;http.Transport{}
+        }</span>
+        <span class="cov8" title="1">t.MaxIdleConns = 100
+        t.MaxConnsPerHost = 100
+
+        browserHeaderTransport := &amp;browserHeaderTransport{
+                base: t,
+        }
+
+        a := &amp;Analyzer{
+                workers: defaultWorkers,
+                scraper: &amp;DefaultHTMLScraper{},
+                client: &amp;http.Client{
+                        Timeout:   defaultTimeout,
+                        Transport: browserHeaderTransport,
+                },
+                ignoredSchemes: map[string]bool{
+                        "javascript": true,
+                        "vbscript":   true,
+                        "data":       true,
+                        "blob":       true,
+
+                        "mailto": true,
+                        "tel":    true,
+                        "sms":    true,
+                        "callto": true,
+
+                        "android-app": true,
+                        "ios-app":     true,
+
+                        "file":   true,
+                        "ftp":    true,
+                        "intent": true,
+                },
+        }
+
+        for _, opt := range opts </span><span class="cov8" title="1">{
+                opt(a)
+        }</span>
+
+        <span class="cov8" title="1">return a</span>
+}
+
+func (a *Analyzer) Analyze(ctx context.Context, targetURL string) (*PageAnalysis, error) <span class="cov8" title="1">{
+        if err := ctx.Err(); err != nil </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">if !strings.HasPrefix(targetURL, "http://") &amp;&amp; !strings.HasPrefix(targetURL, "https://") </span><span class="cov8" title="1">{
+                targetURL = "https://" + targetURL
+        }</span>
+        <span class="cov8" title="1">parsedTarget, err := url.ParseRequestURI(targetURL)
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, fmt.Errorf("%w: %v", ErrInvalidURL, err)
+        }</span>
+
+        <span class="cov8" title="1">req, err := http.NewRequestWithContext(ctx, http.MethodGet, parsedTarget.String(), nil)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("failed to build request: %w", err)
+        }</span>
+
+        <span class="cov8" title="1">resp, err := a.client.Do(req)
+        if err != nil </span><span class="cov8" title="1">{
+                if ctx.Err() != nil </span><span class="cov0" title="0">{
+                        return nil, ctx.Err()
+                }</span>
+                <span class="cov8" title="1">return nil, &amp;HTTPError{
+                        StatusCode:  0,
+                        Description: "Failed to establish connection to the server.",
+                }</span>
+        }
+        <span class="cov8" title="1">defer resp.Body.Close()
+
+        if resp.StatusCode &lt; 200 || resp.StatusCode &gt;= 400 </span><span class="cov8" title="1">{
+                return nil, &amp;HTTPError{
+                        StatusCode:  resp.StatusCode,
+                        Description: http.StatusText(resp.StatusCode),
+                }
+        }</span>
+
+        <span class="cov8" title="1">if err := ctx.Err(); err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">limitReader := io.LimitReader(resp.Body, maxBodySize)
+        scrapeData, err := a.scraper.Scrape(ScrapeRequest{
+                Reader:    limitReader,
+                TargetURL: parsedTarget,
+        })
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, fmt.Errorf("%w: %v", ErrScrape, err)
+        }</span>
+
+        <span class="cov8" title="1">_, _ = io.Copy(io.Discard, resp.Body) // drain for conn reuse
+
+        if err := ctx.Err(); err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">links, inaccessibleLinks, err := a.processAndValidateLinks(ctx, parsedTarget, scrapeData.RawLinks)
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">return &amp;PageAnalysis{
+                URL:               parsedTarget.String(),
+                HTMLVersion:       scrapeData.HTMLVersion,
+                Title:             scrapeData.Title,
+                Headings:          scrapeData.Headings,
+                InternalLinks:     links.Internal,
+                ExternalLinks:     links.External,
+                InaccessibleLinks: inaccessibleLinks,
+                HasLoginForm:      scrapeData.HasLoginForm,
+        }, nil</span>
+}
+
+func (a *Analyzer) processAndValidateLinks(ctx context.Context, baseURL *url.URL, rawLinks []Link) (CategorizedLinks, []Link, error) <span class="cov8" title="1">{
+        links := a.categorizeLinks(baseURL, rawLinks)
+
+        inaccessibleLinks, err := a.getInaccessibleLinks(ctx, links.Validatable)
+        if err != nil </span><span class="cov8" title="1">{
+                return CategorizedLinks{}, nil, err
+        }</span>
+
+        <span class="cov8" title="1">return links, inaccessibleLinks, nil</span>
+}
+
+func (a *Analyzer) categorizeLinks(baseURL *url.URL, rawLinks []Link) CategorizedLinks <span class="cov8" title="1">{
+
+        categorized := CategorizedLinks{
+                Validatable: make([]Link, 0, len(rawLinks)),
+                Internal:    make([]Link, 0, len(rawLinks)/2),
+                External:    make([]Link, 0, len(rawLinks)/2),
+        }
+
+        seen := make(map[string]struct{}, len(rawLinks))
+
+        for _, rawLink := range rawLinks </span><span class="cov8" title="1">{
+                rawURLStr := strings.TrimSpace(rawLink.URL())
+                if rawURLStr == "" </span><span class="cov0" title="0">{
+                        continue</span>
+                }
+
+                <span class="cov8" title="1">resolvedURL, err := baseURL.Parse(rawURLStr)
+                if err != nil </span><span class="cov0" title="0">{
+                        continue</span>
+                }
+
+                <span class="cov8" title="1">scheme := strings.ToLower(resolvedURL.Scheme)
+                if a.ignoredSchemes[scheme] </span><span class="cov8" title="1">{
+                        continue</span>
+                }
+
+                <span class="cov8" title="1">normalizedURL := a.NormalizeURL(resolvedURL)
+                normalizedStr := normalizedURL.String()
+
+                if _, exists := seen[normalizedStr]; exists </span><span class="cov8" title="1">{
+                        continue</span>
+                }
+                <span class="cov8" title="1">seen[normalizedStr] = struct{}{}
+
+                scrapedLink := ScrapedLink(normalizedStr)
+                categorized.Validatable = append(categorized.Validatable, scrapedLink)
+
+                if normalizedURL.Host == baseURL.Host || normalizedURL.Host == "" </span><span class="cov8" title="1">{
+                        categorized.Internal = append(categorized.Internal, scrapedLink)
+                }</span> else<span class="cov8" title="1"> {
+                        categorized.External = append(categorized.External, scrapedLink)
+                }</span>
+        }
+
+        <span class="cov8" title="1">return categorized</span>
+}
+
+func (a *Analyzer) NormalizeURL(u *url.URL) *url.URL <span class="cov8" title="1">{
+        cloned := *u
+
+        cloned.Scheme = strings.ToLower(cloned.Scheme)
+        cloned.Host = strings.ToLower(cloned.Host)
+
+        port := cloned.Port()
+        if (cloned.Scheme == "http" &amp;&amp; port == "80") ||
+                (cloned.Scheme == "https" &amp;&amp; port == "443") </span><span class="cov8" title="1">{
+                cloned.Host = cloned.Hostname()
+        }</span>
+
+        <span class="cov8" title="1">cloned.Fragment = ""
+        cloned.RawFragment = ""
+
+        if cloned.RawQuery != "" </span><span class="cov8" title="1">{
+                cloned.RawQuery = cloned.Query().Encode()
+        }</span>
+
+        <span class="cov8" title="1">if cloned.Path != "" </span><span class="cov8" title="1">{
+
+                cloned.Path = path.Clean(cloned.Path)
+
+                if cloned.Path == "/" </span><span class="cov8" title="1">{
+                        cloned.Path = ""
+                }</span>
+        }
+
+        <span class="cov8" title="1">return &amp;cloned</span>
+}
+
+func (a *Analyzer) getInaccessibleLinks(ctx context.Context, links []Link) ([]Link, error) <span class="cov8" title="1">{
+        if len(links) == 0 </span><span class="cov8" title="1">{
+                return nil, nil
+        }</span>
+
+        <span class="cov8" title="1">jobs := make(chan Link, len(links))
+        results := make(chan Link, len(links))
+        var wg sync.WaitGroup
+
+        numWorkers := a.workers
+        if len(links) &lt; numWorkers </span><span class="cov0" title="0">{
+                numWorkers = len(links)
+        }</span>
+
+        // Start Workers
+        <span class="cov8" title="1">for i := 0; i &lt; numWorkers; i++ </span><span class="cov8" title="1">{
+                wg.Add(1)
+                go func() </span><span class="cov8" title="1">{
+                        defer wg.Done()
+
+                        for link := range jobs </span><span class="cov8" title="1">{
+
+                                if ctx.Err() != nil </span><span class="cov0" title="0">{
+                                        return
+                                }</span>
+
+                                <span class="cov8" title="1">if a.isLinkInaccessible(ctx, link) </span><span class="cov8" title="1">{
+                                        select </span>{
+                                        case &lt;-ctx.Done():<span class="cov8" title="1">
+                                                return</span>
+                                        case results &lt;- link:<span class="cov8" title="1"></span>
+                                        }
+                                }
+                        }
+                }()
+        }
+
+        <span class="cov8" title="1">for _, link := range links </span><span class="cov8" title="1">{
+                jobs &lt;- link
+        }</span>
+        <span class="cov8" title="1">close(jobs)
+
+        go func() </span><span class="cov8" title="1">{
+                wg.Wait()
+                close(results)
+        }</span>()
+
+        <span class="cov8" title="1">var inaccessible []Link
+        for brokenLink := range results </span><span class="cov8" title="1">{
+                inaccessible = append(inaccessible, brokenLink)
+        }</span>
+
+        <span class="cov8" title="1">if err := ctx.Err(); err != nil </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">return inaccessible, nil</span>
+}
+
+func (a *Analyzer) isLinkInaccessible(ctx context.Context, link Link) bool <span class="cov8" title="1">{
+
+        inaccessible, err := a.checkURL(ctx, http.MethodHead, link.URL())
+        if err == nil &amp;&amp; !inaccessible </span><span class="cov8" title="1">{
+                return false
+        }</span>
+
+        <span class="cov8" title="1">inaccessible, err = a.checkURL(ctx, http.MethodGet, link.URL())
+        if err != nil </span><span class="cov8" title="1">{
+                return true
+        }</span>
+
+        <span class="cov8" title="1">return inaccessible</span>
+}
+
+func (a *Analyzer) checkURL(ctx context.Context, method, targetURL string) (bool, error) <span class="cov8" title="1">{
+        req, err := http.NewRequestWithContext(ctx, method, targetURL, nil)
+        if err != nil </span><span class="cov0" title="0">{
+                return true, err
+        }</span>
+
+        <span class="cov8" title="1">resp, err := a.client.Do(req)
+        if err != nil </span><span class="cov8" title="1">{
+                return true, err
+        }</span>
+        <span class="cov8" title="1">defer resp.Body.Close()
+
+        return resp.StatusCode &gt;= 400, nil</span> // ignoring 301,302 redirects for now
+}
+</pre>
+		
+		<pre class="file" id="file5" style="display: none">package analyzer
+
+import (
+        "net/http"
+)
+
+const (
+        browserUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        browserAccept    = "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"
+        browserLanguage  = "en-US,en;q=0.9"
+)
+
+type browserHeaderTransport struct {
+        base http.RoundTripper
+}
+
+func (t *browserHeaderTransport) RoundTrip(req *http.Request) (*http.Response, error) <span class="cov8" title="1">{
+        clonedReq := req.Clone(req.Context())
+
+        clonedReq.Header.Set("User-Agent", browserUserAgent)
+        clonedReq.Header.Set("Accept", browserAccept)
+        clonedReq.Header.Set("Accept-Language", browserLanguage)
+
+        return t.base.RoundTrip(clonedReq)
+}</span>
+</pre>
+		
+		<pre class="file" id="file6" style="display: none">package analyzer
+
+import (
+        "errors"
+        "fmt"
+)
+
+var (
+
+        // ErrInvalidURL indicates the provided string is not a valid URL.
+        ErrInvalidURL = errors.New("invalid URL")
+
+        // ErrScrape indicates parsing the HTML document failed.
+        ErrScrape = errors.New("scraping failed")
+)
+
+type HTTPError struct {
+        StatusCode  int
+        Description string
+}
+
+func (e *HTTPError) Error() string <span class="cov8" title="1">{
+        if e.StatusCode == 0 </span><span class="cov8" title="1">{
+                return fmt.Sprintf("unreachable: %s", e.Description)
+        }</span>
+        <span class="cov8" title="1">return fmt.Sprintf("HTTP %d: %s", e.StatusCode, e.Description)</span>
+}
+</pre>
+		
+		<pre class="file" id="file7" style="display: none">package analyzer
+
+import (
+        "net/http"
+        "strings"
+)
+
+type Option func(*Analyzer)
+
+func WithWorkers(n int) Option <span class="cov8" title="1">{
+        return func(a *Analyzer) </span><span class="cov8" title="1">{
+                if n &gt; 0 </span><span class="cov8" title="1">{
+                        a.workers = n
+                }</span>
+        }
+}
+
+func WithHTTPClient(client *http.Client) Option <span class="cov8" title="1">{
+        return func(a *Analyzer) </span><span class="cov8" title="1">{
+                if client != nil </span><span class="cov8" title="1">{
+                        a.client = client
+                }</span>
+        }
+}
+
+func WithIgnoredSchemes(schemes ...string) Option <span class="cov0" title="0">{
+        return func(a *Analyzer) </span><span class="cov0" title="0">{
+                for _, s := range schemes </span><span class="cov0" title="0">{
+                        a.ignoredSchemes[strings.ToLower(strings.TrimSpace(s))] = true
+                }</span>
+        }
+}
+
+func WithScraper(scraper Scraper) Option <span class="cov8" title="1">{
+        return func(a *Analyzer) </span><span class="cov8" title="1">{
+                if scraper != nil </span><span class="cov8" title="1">{
+                        a.scraper = scraper
+                }</span>
+        }
+}
+</pre>
+		
+		<pre class="file" id="file8" style="display: none">package analyzer
+
+import (
+        "io"
+        "net/url"
+        "strings"
+
+        "golang.org/x/net/html"
+)
+
+// Link represents any link or resource URL extracted from a parsed document.
+//
+// We use an interface so the analyzer can handle different link types dynamically.
+// Higher-level analyzer components can perform type assertions (e.g., link.(FormLink))
+// to run type-specific logic, or inspect validation status.
+//
+// Examples of future link implementations:
+//
+//   - AnchorLink: standard text links (&lt;a href="..."&gt;)
+//
+//   - MediaLink: images, scripts, or videos (&lt;img src="..."&gt;, &lt;script src="..."&gt;)
+//
+//   - FormLink: form action targets (&lt;form action="..." method="POST"&gt;)
+//
+//   - AnalyzedLink: holds validation status and potential accessibility errors:
+//
+//     type AnalyzedLink struct {
+//     Link               // embeds the inner Link interface
+//     ValidationError error // e.g., HTTP 404, DNS resolution failure
+type Link interface {
+        URL() string
+}
+
+type ScrapedLink string
+
+func (l ScrapedLink) URL() string <span class="cov8" title="1">{
+        return string(l)
+}</span>
+
+type ScrapeRequest struct {
+        Reader    io.Reader
+        TargetURL *url.URL
+}
+
+type Scraper interface {
+        Scrape(req ScrapeRequest) (*ScrapeData, error)
+}
+
+type DefaultHTMLScraper struct{}
+
+func (s *DefaultHTMLScraper) Scrape(req ScrapeRequest) (*ScrapeData, error) <span class="cov8" title="1">{
+        doc, err := html.Parse(req.Reader)
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">data := &amp;ScrapeData{
+                HTMLVersion: "Unknown",
+                Headings:    make(map[string]int),
+                RawLinks:    make([]Link, 0),
+        }
+
+        data.HTMLVersion = extractDoctype(doc)
+        data.Title = extractHeadTitle(doc)
+
+        s.walk(doc, data)
+
+        return data, nil</span>
+}
+
+func (s *DefaultHTMLScraper) walk(n *html.Node, data *ScrapeData) <span class="cov8" title="1">{
+        if n.Type == html.ElementNode </span><span class="cov8" title="1">{
+                tagName := strings.ToLower(n.Data)
+
+                // 1. Record Headings (h1..h6)
+                if len(tagName) == 2 &amp;&amp; tagName[0] == 'h' &amp;&amp; tagName[1] &gt;= '1' &amp;&amp; tagName[1] &lt;= '6' </span><span class="cov8" title="1">{
+                        data.Headings[tagName]++
+                }</span>
+
+                // 2. Extract, clean, and resolve links
+                <span class="cov8" title="1">if linkURL := extractLinkFromNode(n, tagName); linkURL != "" </span><span class="cov8" title="1">{
+                        data.RawLinks = append(data.RawLinks, ScrapedLink(linkURL))
+                }</span>
+
+                // 3. Check for Password Input inside &lt;form&gt;
+                <span class="cov8" title="1">if tagName == "form" &amp;&amp; !data.HasLoginForm </span><span class="cov8" title="1">{
+                        data.HasLoginForm = hasPasswordInput(n)
+                }</span>
+        }
+
+        <span class="cov8" title="1">for c := n.FirstChild; c != nil; c = c.NextSibling </span><span class="cov8" title="1">{
+                s.walk(c, data)
+        }</span>
+}
+
+// Helper to target key attributes (href, src, action, poster) per HTML specification
+func extractLinkFromNode(n *html.Node, tagName string) string <span class="cov8" title="1">{
+        var targetAttr string
+
+        switch tagName </span>{
+        case "a", "link", "area", "base":<span class="cov8" title="1">
+                targetAttr = "href"</span>
+        case "script", "img", "iframe", "embed", "source", "track":<span class="cov8" title="1">
+                targetAttr = "src"</span>
+        case "form":<span class="cov8" title="1">
+                targetAttr = "action"</span>
+        case "video":<span class="cov8" title="1">
+                targetAttr = "poster"</span>
+        default:<span class="cov8" title="1">
+                return ""</span>
+        }
+
+        <span class="cov8" title="1">for _, attr := range n.Attr </span><span class="cov8" title="1">{
+                if strings.ToLower(attr.Key) == targetAttr </span><span class="cov8" title="1">{
+                        if attr.Val != "" </span><span class="cov8" title="1">{
+                                return normalizeURL(attr.Val)
+                        }</span>
+                }
+        }
+
+        <span class="cov8" title="1">return ""</span>
+}
+
+func normalizeURL(rawURL string) string <span class="cov8" title="1">{
+        parsed, err := url.Parse(rawURL)
+        if err != nil </span><span class="cov8" title="1">{
+                return rawURL
+        }</span>
+
+        <span class="cov8" title="1">return parsed.String()</span>
+}
+
+func extractHeadTitle(n *html.Node) string <span class="cov8" title="1">{
+        headNode := findElement(n, "head")
+        if headNode == nil </span><span class="cov0" title="0">{
+                return ""
+        }</span>
+
+        <span class="cov8" title="1">titleNode := findElement(headNode, "title")
+        if titleNode == nil </span><span class="cov8" title="1">{
+                return ""
+        }</span>
+
+        <span class="cov8" title="1">return strings.TrimSpace(extractTextContent(titleNode))</span>
+}
+
+func extractTextContent(n *html.Node) string <span class="cov8" title="1">{
+        if n.Type == html.TextNode </span><span class="cov8" title="1">{
+                return n.Data
+        }</span>
+        <span class="cov8" title="1">var sb strings.Builder
+        for c := n.FirstChild; c != nil; c = c.NextSibling </span><span class="cov8" title="1">{
+                sb.WriteString(extractTextContent(c))
+        }</span>
+        <span class="cov8" title="1">return sb.String()</span>
+}
+
+func findElement(n *html.Node, targetTag string) *html.Node <span class="cov8" title="1">{
+        if n.Type == html.ElementNode &amp;&amp; strings.ToLower(n.Data) == targetTag </span><span class="cov8" title="1">{
+                return n
+        }</span>
+        <span class="cov8" title="1">for c := n.FirstChild; c != nil; c = c.NextSibling </span><span class="cov8" title="1">{
+                if res := findElement(c, targetTag); res != nil </span><span class="cov8" title="1">{
+                        return res
+                }</span>
+        }
+        <span class="cov8" title="1">return nil</span>
+}
+
+func hasPasswordInput(formNode *html.Node) bool <span class="cov8" title="1">{
+        if formNode.Type == html.ElementNode &amp;&amp; strings.ToLower(formNode.Data) == "input" </span><span class="cov8" title="1">{
+                for _, attr := range formNode.Attr </span><span class="cov8" title="1">{
+                        if strings.ToLower(attr.Key) == "type" &amp;&amp; strings.ToLower(attr.Val) == "password" </span><span class="cov8" title="1">{
+                                return true
+                        }</span>
+                }
+        }
+        <span class="cov8" title="1">for c := formNode.FirstChild; c != nil; c = c.NextSibling </span><span class="cov8" title="1">{
+                if hasPasswordInput(c) </span><span class="cov8" title="1">{
+                        return true
+                }</span>
+        }
+        <span class="cov8" title="1">return false</span>
+}
+
+func extractDoctype(doc *html.Node) string <span class="cov8" title="1">{
+        for c := doc.FirstChild; c != nil; c = c.NextSibling </span><span class="cov8" title="1">{
+                if c.Type == html.DoctypeNode </span><span class="cov8" title="1">{
+                        return parseDoctype(c)
+                }</span>
+        }
+        <span class="cov8" title="1">return "HTML (Legacy/Unknown)"</span>
+}
+
+func parseDoctype(node *html.Node) string <span class="cov8" title="1">{
+        var sb strings.Builder
+        sb.WriteString(node.Data)
+
+        for _, attr := range node.Attr </span><span class="cov0" title="0">{
+                sb.WriteString(" ")
+                sb.WriteString(attr.Val)
+        }</span>
+
+        <span class="cov8" title="1">dt := strings.ToLower(sb.String())
+
+        if strings.Contains(dt, "html 4.01") </span><span class="cov0" title="0">{
+                return "HTML 4.01"
+        }</span>
+        <span class="cov8" title="1">if strings.Contains(dt, "xhtml 1.0") </span><span class="cov0" title="0">{
+                return "XHTML 1.0"
+        }</span>
+        <span class="cov8" title="1">if strings.TrimSpace(strings.ToLower(node.Data)) == "html" </span><span class="cov8" title="1">{
+                return "HTML5"
+        }</span>
+
+        <span class="cov0" title="0">return "HTML (Legacy/Unknown)"</span>
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>
