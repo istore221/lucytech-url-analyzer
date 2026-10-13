@@ -22,9 +22,11 @@ docker-compose*
 *~
 
 # Test & coverage reports
+!coverage.html
 *.cover
 *.html
 coverage.out
+
 
 # OS metadata
 .DS_Store
