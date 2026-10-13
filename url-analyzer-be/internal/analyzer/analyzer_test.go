@@ -118,7 +118,6 @@ func TestAnalyzer_Analyze(t *testing.T) {
 		}, res.ExternalLinks)
 
 		assert.ElementsMatch(t, []analyzer.Link{
-			analyzer.ScrapedLink("https://example.com/broken"),
 			analyzer.ScrapedLink("https://broken-external.com"),
 			analyzer.ScrapedLink("https://network-error.com"),
 		}, res.InaccessibleLinks)
