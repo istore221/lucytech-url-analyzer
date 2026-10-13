@@ -327,14 +327,5 @@ func (a *Analyzer) checkURL(ctx context.Context, method, targetURL string) (bool
 	}
 	defer resp.Body.Close()
 
-	// If HEAD is blocked or disallowed (403, 405, 501), treat as inconclusive to trigger GET fallback
-	if method == http.MethodHead {
-		if resp.StatusCode == http.StatusMethodNotAllowed ||
-			resp.StatusCode == http.StatusForbidden ||
-			resp.StatusCode == http.StatusNotImplemented {
-			return true, fmt.Errorf("HEAD method not supported or blocked (status %d)", resp.StatusCode)
-		}
-	}
-
 	return resp.StatusCode >= 400, nil // ignoring 301,302 redirects for now
 }
