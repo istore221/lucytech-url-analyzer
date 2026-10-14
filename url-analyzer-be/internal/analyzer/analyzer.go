@@ -327,9 +327,5 @@ func (a *Analyzer) checkURL(ctx context.Context, method, targetURL string) (bool
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode == http.StatusMethodNotAllowed {
-		return false, nil
-	}
-
 	return resp.StatusCode >= 400, nil // ignoring 301,302 redirects for now
 }

@@ -70,6 +70,10 @@ docker compose down
 
 During the development of the URL Analyzer, several technical constraints and edge cases were encountered. Here is how they were addressed:
 
+* **Defining Inaccessible URLs**
+  * *Challenge:* Defining what actually constitutes an "inaccessible" URL in a deterministic way, since servers respond with a wide variety of status codes, redirects, and custom error pages. 
+  * *Approach:* Established a baseline rule that flags any URL returning an HTTP status code greater than or equal to 400 as inaccessible.
+
 * **Bypassing Modern Firewalls & Bot Detection**
   * *Challenge:* Simply spoofing browser headers is no longer sufficient to mimic legitimate, non-scripted HTTP calls. Modern firewalls use TLS layer cryptography and JA3 fingerprinting to detect and block scripts.
   * *Approach:* Explored and experimented with custom HTTP clients (such as [enetx/surf](https://github.com/enetx/surf)) to mimic browser behavior. While it offered some improvements, bypassing advanced TLS-layer verification remains an ongoing challenge for standard HTTP clients.
@@ -79,10 +83,7 @@ During the development of the URL Analyzer, several technical constraints and ed
 * **Handling Rate Limits & False Positives (HTTP 429)**
   * *Challenge:* Servers returning `429 Too Many Requests` were causing valid URLs to be marked as inaccessible. 
   * *Approach:* Tried with a small request jitter (delay) per hostname to reduce the likelihood of triggering rate limits. However, had not much success.
-* **Handling StatusMethodNotAllowed (HTTP 405)**
-     * *Approach:* this will be considerd as a accessible link as
-       origin server recognizes the requested URL.
-
+     
 * **Network Anomalies**
   * *Challenge:* Transient client-side network issues (e.g., `ConnectionRefused`, DNS lookup failures) resulted in links being flagged as inaccessible, even if the target server was perfectly healthy.
  

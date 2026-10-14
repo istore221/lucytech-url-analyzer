@@ -46,14 +46,6 @@ func TestAnalyzer_Analyze(t *testing.T) {
 			Get("/").
 			Reply(http.StatusOK)
 
-		gock.New(targetURL).
-			Head("/broken").
-			Reply(http.StatusMethodNotAllowed)
-
-		gock.New(targetURL).
-			Get("/broken").
-			Reply(http.StatusNotFound)
-
 		gock.New("https://broken-external.com").
 			Get("/").
 			Reply(http.StatusNotFound)
@@ -71,7 +63,6 @@ func TestAnalyzer_Analyze(t *testing.T) {
 				analyzer.ScrapedLink("/internal"),
 				analyzer.ScrapedLink("   https://external.com    "),
 				analyzer.ScrapedLink("https://network-error.com"),
-				analyzer.ScrapedLink("/broken"),
 				analyzer.ScrapedLink("https://broken-external.com"),
 				analyzer.ScrapedLink("/internal?b=test&a=test#section"),
 				analyzer.ScrapedLink("/internal?a=test&b=test"),
@@ -106,7 +97,6 @@ func TestAnalyzer_Analyze(t *testing.T) {
 
 		assert.ElementsMatch(t, []analyzer.Link{
 			analyzer.ScrapedLink("https://example.com/internal"),
-			analyzer.ScrapedLink("https://example.com/broken"),
 			analyzer.ScrapedLink("https://example.com/internal?a=test&b=test"),
 			analyzer.ScrapedLink("https://example.com/internal?a=test&b=test&c=test"),
 		}, res.InternalLinks)
