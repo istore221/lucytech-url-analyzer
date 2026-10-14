@@ -79,6 +79,10 @@ During the development of the URL Analyzer, several technical constraints and ed
 * **Handling Rate Limits & False Positives (HTTP 429)**
   * *Challenge:* Servers returning `429 Too Many Requests` were causing valid URLs to be marked as inaccessible. 
   * *Approach:* Tried with a small request jitter (delay) per hostname to reduce the likelihood of triggering rate limits. However, had not much success.
+* **Handling StatusMethodNotAllowed (HTTP 405)**
+     * *Approach:* this will be considerd as a accessible link as
+       origin server recognizes the requested URL.
+
 * **Network Anomalies**
   * *Challenge:* Transient client-side network issues (e.g., `ConnectionRefused`, DNS lookup failures) resulted in links being flagged as inaccessible, even if the target server was perfectly healthy.
  
